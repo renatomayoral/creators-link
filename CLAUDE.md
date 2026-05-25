@@ -84,7 +84,7 @@ nfsw-ai-studio/
 const GCP_DEFAULTS = {
   projectId: 'mktia-ai-studio',
   projectNumber: '448251250847',
-  defaultZone: 'us-central1-a',
+  defaultZone: 'us-central1-f',
   defaultRegion: 'us-central1',
 } as const
 
@@ -290,7 +290,7 @@ export function createWanI2VWorkflow(params: WanI2VParams): ComfyWorkflow
 ### `/settings`
 - RadioGroup: "Google Cloud" | "RunPod"
 - Form condicional por provider (react-hook-form + zod)
-  - GCP: Project ID (mktia-ai-studio), Project Number (448251250847), Instance Name, Zone
+  - GCP: Project ID (mktia-ai-studio), Project Number (448251250847), Instance Name, Zone (us-central1-f)
   - RunPod: API Key, GPU Type, Pod Name, Docker Image
 - Seção Storage: bucket name, verificar bucket, stats, Switch auto-upload
 - Select auto-shutdown (1h, 2h, 4h, nunca)
@@ -366,7 +366,7 @@ gcloud compute ssh INSTANCE_NAME --project=mktia-486913 -- -L 8188:localhost:818
 ```bash
 # GCP (auth via application-default, não precisa de key file)
 GCP_PROJECT=mktia-ai-studio
-GCP_ZONE=us-central1-a
+GCP_ZONE=us-central1-f
 GCP_INSTANCE_NAME=
 
 # GCS

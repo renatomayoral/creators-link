@@ -1,0 +1,98 @@
+steps:
+  # 1. Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    args:
+      - build
+      - '--tag=us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:$SHORT_SHA'
+      - '--tag=us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:latest'
+      - '--cache-from=us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:latest'
+      - '--build-arg=BUILDKIT_INLINE_CACHE=1'
+      - './docker'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+  # 2. Push both tags to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-sha
+    waitFor: [build]
+    args:
+      - push
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:$SHORT_SHA'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-latest
+    waitFor: [build]
+    args:
+      - push
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:latest'
+
+  # 3. If the VM is running, update the container in-place via SSH
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-if-running
+    waitFor: [push-latest]
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        set -e
+        INSTANCE="${_INSTANCE_NAME}"
+        ZONE="${_ZONE}"
+        PROJECT="$PROJECT_ID"
+        IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:$SHORT_SHA"
+
+        # Check if VM exists and is running
+        STATUS=$(gcloud compute instances describe "${INSTANCE}" \
+          --zone="${ZONE}" \
+          --project="${PROJECT}" \
+          --format='value(status)' 2>/dev/null || echo "NOT_FOUND")
+
+        echo "VM status: ${STATUS}"
+
+        if [ "${STATUS}" = "RUNNING" ]; then
+          echo "VM is running — updating container..."
+          gcloud compute ssh "${INSTANCE}" \
+            --zone="${ZONE}" \
+            --project="${PROJECT}" \
+            --tunnel-through-iap \
+            --command="
+              set -e
+              # Authenticate Docker with Artifact Registry
+              gcloud auth configure-docker us-central1-docker.pkg.dev -q
+              # Pull new image
+              docker pull ${IMAGE}
+              # Restart container with new image
+              docker stop ai-studio-comfyui 2>/dev/null || true
+              docker rm ai-studio-comfyui 2>/dev/null || true
+              docker run -d \
+                --name ai-studio-comfyui \
+                --runtime=nvidia \
+                --gpus all \
+                -p 8188:8188 \
+                -v /data:/data \
+                -v /root/.config/gcloud:/root/.config/gcloud:ro \
+                -e GCS_BUCKET=${_GCS_BUCKET} \
+                -e CLOUD_PROVIDER=gcp \
+                --restart unless-stopped \
+                ${IMAGE}
+              echo '✓ Container updated'
+            "
+        else
+          echo "VM is ${STATUS} — skipping live deploy. New image will be used on next start."
+        fi
+
+substitutions:
+  _INSTANCE_NAME: ai-studio-vm
+  _ZONE: us-central1-f
+  _GCS_BUCKET: mktia-ai-studio-outputs
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+  dynamic_substitutions: true
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:latest'
+
+timeout: 3600s
