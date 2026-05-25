@@ -27,56 +27,73 @@ steps:
       - push
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:latest'
 
-  # 3. If the VM is running, update the container in-place via SSH
-  # Bash vars that Cloud Build should NOT expand use $$ prefix
+  # 3. Check VM status (separate step — no bash vars)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: check-vm
+    waitFor: [push-latest]
+    args:
+      - compute
+      - instances
+      - describe
+      - '${_INSTANCE_NAME}'
+      - '--zone=${_ZONE}'
+      - '--project=$PROJECT_ID'
+      - '--format=value(status)'
+    entrypoint: gcloud
+
+  # 4. Deploy script — writes VM status to file, then conditionally deploys
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: deploy-if-running
-    waitFor: [push-latest]
+    waitFor: [check-vm]
     entrypoint: bash
+    env:
+      - 'IMAGE=us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:$SHORT_SHA'
+      - 'INSTANCE=${_INSTANCE_NAME}'
+      - 'ZONE=${_ZONE}'
+      - 'GCS_BUCKET=${_GCS_BUCKET}'
+      - 'CB_PROJECT=$PROJECT_ID'
     args:
+      - '-euo'
+      - 'pipefail'
       - '-c'
       - |
-        set -e
-        # Cloud Build substitutions (expanded by Cloud Build before bash runs)
-        IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/comfyui:$SHORT_SHA"
-
-        # Check if VM exists and is running ($$STATUS = bash variable, not CB substitution)
-        $$STATUS=$$(gcloud compute instances describe ${_INSTANCE_NAME} \
-          --zone=${_ZONE} \
-          --project=$PROJECT_ID \
+        # All values come from env vars injected above — no Cloud Build substitutions in bash text
+        VM_STATUS=$$(gcloud compute instances describe "$$INSTANCE" \
+          --zone="$$ZONE" \
+          --project="$$CB_PROJECT" \
           --format='value(status)' 2>/dev/null || echo "NOT_FOUND")
 
-        echo "VM status: $$STATUS"
+        echo "VM status: $$VM_STATUS"
 
-        if [ "$$STATUS" = "RUNNING" ]; then
-          echo "VM is running — updating container..."
-          gcloud compute ssh ${_INSTANCE_NAME} \
-            --zone=${_ZONE} \
-            --project=$PROJECT_ID \
-            --tunnel-through-iap \
-            --strict-host-key-checking=no \
-            --command="
-              set -e
-              gcloud auth configure-docker us-central1-docker.pkg.dev -q
-              docker pull ${IMAGE}
-              docker stop ai-studio-comfyui 2>/dev/null || true
-              docker rm ai-studio-comfyui 2>/dev/null || true
-              docker run -d \
-                --name ai-studio-comfyui \
-                --runtime=nvidia \
-                --gpus all \
-                -p 8188:8188 \
-                -v /data:/data \
-                -v /root/.config/gcloud:/root/.config/gcloud:ro \
-                -e GCS_BUCKET=${_GCS_BUCKET} \
-                -e CLOUD_PROVIDER=gcp \
-                --restart unless-stopped \
-                ${IMAGE}
-              echo 'Container updated'
-            "
-        else
-          echo "VM is $$STATUS — skipping live deploy. New image will be used on next start."
+        if [ "$$VM_STATUS" != "RUNNING" ]; then
+          echo "VM is $$VM_STATUS — skipping live deploy. New image used on next boot."
+          exit 0
         fi
+
+        echo "VM is RUNNING — deploying $$IMAGE"
+        gcloud compute ssh "$$INSTANCE" \
+          --zone="$$ZONE" \
+          --project="$$CB_PROJECT" \
+          --tunnel-through-iap \
+          --strict-host-key-checking=no \
+          -- bash -s << ENDSSH
+        set -e
+        gcloud auth configure-docker us-central1-docker.pkg.dev -q
+        docker pull "$$IMAGE"
+        docker stop ai-studio-comfyui 2>/dev/null || true
+        docker rm   ai-studio-comfyui 2>/dev/null || true
+        docker run -d \
+          --name ai-studio-comfyui \
+          --runtime=nvidia --gpus all \
+          -p 8188:8188 \
+          -v /data:/data \
+          -v /root/.config/gcloud:/root/.config/gcloud:ro \
+          -e GCS_BUCKET="$$GCS_BUCKET" \
+          -e CLOUD_PROVIDER=gcp \
+          --restart unless-stopped \
+          "$$IMAGE"
+        echo "Container updated to $$IMAGE"
+        ENDSSH
 
 substitutions:
   _INSTANCE_NAME: ai-studio-vm
