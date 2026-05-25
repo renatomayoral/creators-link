@@ -6,7 +6,7 @@ import type {
   BillingInfo,
 } from '@repo/shared/types'
 import { RUNPOD_DEFAULTS } from '@repo/shared/constants'
-import type { CloudProvider } from '../interface.js'
+import type { CloudProvider } from '../interface'
 
 export type RunPodConfig = {
   apiKey: string

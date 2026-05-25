@@ -89,11 +89,10 @@ steps:
           '$$IMAGE'
         echo 'Container updated to $$IMAGE'"
 
-        gcloud compute ssh "$$INSTANCE" \
+        gcloud compute ssh "root@$$INSTANCE" \
           --zone="$$ZONE" \
           --project="$$CB_PROJECT" \
           --tunnel-through-iap \
-          --ssh-user=root \
           --strict-host-key-checking=no \
           --command="$$REMOTE_CMD"
 

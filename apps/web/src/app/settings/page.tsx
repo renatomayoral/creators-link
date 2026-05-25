@@ -23,6 +23,7 @@ import {
 } from '@repo/ui/components/alert-dialog'
 import { Separator } from '@repo/ui/components/separator'
 import { useToast } from '@repo/ui/hooks/use-toast'
+import { z } from 'zod'
 import { AppSettingsSchema, type AppSettings } from '@repo/shared/types'
 import { formatBytes, formatCurrency } from '@repo/shared/utils'
 import { STORAGE_COST_PER_GB_MONTH_USD } from '@repo/shared/constants'
@@ -33,7 +34,9 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const form = useForm<AppSettings>({
+  // z.input<> = form fields (optional where schema has defaults)
+  // AppSettings (z.output<>) = submitted/validated data (all required with defaults applied)
+  const form = useForm<z.input<typeof AppSettingsSchema>, unknown, AppSettings>({
     resolver: zodResolver(AppSettingsSchema),
     defaultValues: {
       cloudProvider: 'gcp',

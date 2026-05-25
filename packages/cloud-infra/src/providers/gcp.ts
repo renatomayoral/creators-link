@@ -8,7 +8,7 @@ import type {
   BillingInfo,
 } from '@repo/shared/types'
 import { GCP_DEFAULTS } from '@repo/shared/constants'
-import type { CloudProvider } from '../interface.js'
+import type { CloudProvider } from '../interface'
 
 export type GCPConfig = {
   projectId: string
