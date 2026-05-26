@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { schema } from './schema.js'
+import { schema } from './schema'
 
 type DB = ReturnType<typeof drizzle<typeof schema>>
 

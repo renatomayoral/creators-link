@@ -1,0 +1,67 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: mktia-ai-studio
+  REGION: us-central1
+  SERVICE: nfsw-ai-studio-web
+  IMAGE: gcr.io/mktia-ai-studio/nfsw-ai-studio-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # needed for Workload Identity Federation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: cloudrun-web@mktia-ai-studio.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & push Docker image
+        run: |
+          gcloud builds submit \
+            --tag $IMAGE:${{ github.sha }} \
+            --project $PROJECT_ID \
+            --file apps/web/Dockerfile \
+            .
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE \
+            --image $IMAGE:${{ github.sha }} \
+            --project $PROJECT_ID \
+            --region $REGION \
+            --platform managed \
+            --service-account cloudrun-web@mktia-ai-studio.iam.gserviceaccount.com \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 10 \
+            --memory 1Gi \
+            --cpu 1 \
+            --set-env-vars "GCP_PROJECT=mktia-ai-studio" \
+            --set-env-vars "GCP_ZONE=us-central1-f" \
+            --set-env-vars "GCS_BUCKET=mktia-ai-studio-outputs" \
+            --set-env-vars "CLOUD_PROVIDER=gcp" \
+            --set-env-vars "BETTER_AUTH_URL=https://$SERVICE-${{ env.PROJECT_ID }}.run.app" \
+            --set-env-vars "NEXT_PUBLIC_APP_URL=https://$SERVICE-${{ env.PROJECT_ID }}.run.app" \
+            --set-secrets "BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:latest" \
+            --set-secrets "GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest" \
+            --set-secrets "GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest" \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest" \
+            --set-secrets "STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest" \
+            --set-secrets "STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest" \
+            --set-secrets "STRIPE_PRICE_SPARK=STRIPE_PRICE_SPARK:latest" \
+            --set-secrets "STRIPE_PRICE_CREATOR=STRIPE_PRICE_CREATOR:latest" \
+            --set-secrets "STRIPE_PRICE_PRO=STRIPE_PRICE_PRO:latest"

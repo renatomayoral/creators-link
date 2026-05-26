@@ -178,7 +178,11 @@ export default function StudioPage() {
             </p>
             <p className="mt-1 text-sm text-neutral-400">
               {phase === 'starting'  && `Geralmente leva 2–3 minutos · ${elapsed}s`}
-              {phase === 'tunneling' && `Estabelecendo túnel SSH · ${elapsed}s`}
+              {phase === 'tunneling' && elapsed < 15
+                ? `Conectando via SSH · ${elapsed}s`
+                : phase === 'tunneling' && elapsed < 60
+                ? `VM iniciando, aguardando SSH… · ${elapsed}s`
+                : `Aguardando ComfyUI subir na VM · ${elapsed}s`}
               {phase === 'checking'  && 'Aguarde um momento'}
             </p>
           </div>
