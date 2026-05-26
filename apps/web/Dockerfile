@@ -24,8 +24,13 @@ FROM node:24-alpine AS builder
 RUN npm install -g pnpm@11.3.0
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/node_modules                    ./node_modules
+COPY --from=deps /app/apps/web/node_modules           ./apps/web/node_modules
+# Copy packages node_modules so PostCSS / Tailwind plugins resolve correctly
+COPY --from=deps /app/packages/ui/node_modules        ./packages/ui/node_modules
+COPY --from=deps /app/packages/auth/node_modules      ./packages/auth/node_modules
+COPY --from=deps /app/packages/db/node_modules        ./packages/db/node_modules
+COPY --from=deps /app/packages/payments/node_modules  ./packages/payments/node_modules
 
 # Copy source
 COPY . .

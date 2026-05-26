@@ -81,7 +81,4 @@ export const PUT = handler
 export const PATCH = handler
 export const DELETE = handler
 
-// Disable body size limit for large workflow payloads / image uploads
-export const config = {
-  api: { bodyParser: false },
-}
+// App Router streams bodies natively — no bodyParser config needed
