@@ -58,3 +58,4 @@ timeout: 1200s
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/web:$SHORT_SHA'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/ai-studio/web:latest'
+
