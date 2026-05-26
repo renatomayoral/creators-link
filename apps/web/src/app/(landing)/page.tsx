@@ -276,7 +276,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 focus-visible:outline-2 focus-visible:outline-violet-500"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
                 >
                   Start Free
@@ -298,15 +298,15 @@ export default function LandingPage() {
             {/* Background gradient orbs */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
               <div
-                className="absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full opacity-20 blur-3xl"
+                className="absolute -top-40 left-1/2 h-150 w-150 -translate-x-1/2 rounded-full opacity-20 blur-3xl"
                 style={{ background: 'radial-gradient(circle, #7c3aed, transparent 70%)' }}
               />
               <div
-                className="absolute top-1/2 -right-40 h-[400px] w-[400px] rounded-full opacity-15 blur-3xl"
+                className="absolute top-1/2 -right-40 h-100 w-100 rounded-full opacity-15 blur-3xl"
                 style={{ background: 'radial-gradient(circle, #4f46e5, transparent 70%)' }}
               />
               <div
-                className="absolute bottom-0 left-20 h-[300px] w-[300px] rounded-full opacity-10 blur-3xl"
+                className="absolute bottom-0 left-20 h-75 w-75 rounded-full opacity-10 blur-3xl"
                 style={{ background: 'radial-gradient(circle, #e879f9, transparent 70%)' }}
               />
             </div>
@@ -344,7 +344,7 @@ export default function LandingPage() {
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold text-white transition-all hover:opacity-90 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500 shadow-lg shadow-violet-900/40"
+                  className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold text-white transition-all hover:opacity-90 hover:scale-105 focus-visible:outline-2 focus-visible:outline-violet-500 shadow-lg shadow-violet-900/40"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
                 >
                   Start Creating Free
@@ -352,7 +352,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="#pricing"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-zinc-200 transition-all hover:bg-white/10 hover:border-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/30"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-zinc-200 transition-all hover:bg-white/10 hover:border-white/20 focus-visible:outline-2 focus-visible:outline-white/30"
                 >
                   View Pricing
                 </Link>
@@ -366,7 +366,7 @@ export default function LandingPage() {
           </section>
 
           {/* ─── STATS ─── */}
-          <section aria-label="Platform statistics" className="border-y border-white/5 bg-white/[0.02] py-12">
+          <section aria-label="Platform statistics" className="border-y border-white/5 bg-white/2 py-12">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <dl className="grid grid-cols-2 gap-8 lg:grid-cols-4">
                 {stats.map(({ value, label }) => (
@@ -402,7 +402,7 @@ export default function LandingPage() {
                 {features.map(({ icon: Icon, title, description }) => (
                   <article
                     key={title}
-                    className="group rounded-2xl border border-white/5 bg-white/[0.03] p-6 transition-colors hover:border-violet-500/30 hover:bg-white/[0.05]"
+                    className="group rounded-2xl border border-white/5 bg-white/3 p-6 transition-colors hover:border-violet-500/30 hover:bg-white/5"
                   >
                     <div
                       className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg"
@@ -421,7 +421,7 @@ export default function LandingPage() {
           {/* ─── MODELS SHOWCASE ─── */}
           <section
             aria-labelledby="models-heading"
-            className="py-16 border-y border-white/5 bg-white/[0.02]"
+            className="py-16 border-y border-white/5 bg-white/2"
           >
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <h2 id="models-heading" className="text-center text-sm font-semibold uppercase tracking-widest text-zinc-500 mb-10">
@@ -436,7 +436,7 @@ export default function LandingPage() {
                 ].map(({ name, type, icon: Icon }) => (
                   <div
                     key={name}
-                    className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3"
+                    className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/3 px-4 py-3"
                   >
                     <Icon className="h-5 w-5 shrink-0 text-violet-400" aria-hidden="true" />
                     <div className="min-w-0">
@@ -519,7 +519,7 @@ export default function LandingPage() {
                     className={`relative flex flex-col rounded-2xl p-8 transition-transform hover:-translate-y-1 ${
                       plan.highlighted
                         ? 'border-2 border-violet-500 bg-violet-950/30 shadow-2xl shadow-violet-900/30'
-                        : 'border border-white/5 bg-white/[0.03]'
+                        : 'border border-white/5 bg-white/3'
                     }`}
                     aria-label={`${plan.name} plan`}
                   >
@@ -552,7 +552,7 @@ export default function LandingPage() {
 
                     <Link
                       href={plan.href}
-                      className={`mt-auto inline-flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500 ${
+                      className={`mt-auto inline-flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-violet-500 ${
                         plan.highlighted
                           ? 'text-white hover:opacity-90 shadow-lg shadow-violet-900/40'
                           : 'border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 hover:border-white/20'
@@ -579,7 +579,7 @@ export default function LandingPage() {
           <section
             id="faq"
             aria-labelledby="faq-heading"
-            className="py-24 sm:py-32 border-t border-white/5 bg-white/[0.02]"
+            className="py-24 sm:py-32 border-t border-white/5 bg-white/2"
           >
             <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-14">
@@ -595,7 +595,7 @@ export default function LandingPage() {
                 {faqs.map(({ question, answer }) => (
                   <details
                     key={question}
-                    className="group rounded-xl border border-white/5 bg-white/[0.03] open:border-violet-500/30 transition-colors"
+                    className="group rounded-xl border border-white/5 bg-white/3 open:border-violet-500/30 transition-colors"
                   >
                     <summary
                       className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 text-sm font-medium text-white hover:text-violet-300 transition-colors [&::-webkit-details-marker]:hidden"
@@ -653,14 +653,14 @@ export default function LandingPage() {
                   <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
                       href="/login"
-                      className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-violet-900 transition-all hover:bg-violet-50 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white shadow-lg"
+                      className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-violet-900 transition-all hover:bg-violet-50 hover:scale-105 focus-visible:outline-2 focus-visible:outline-white shadow-lg"
                     >
                       Get Started Free
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                     <Link
                       href="#pricing"
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
                     >
                       See Pricing
                     </Link>
