@@ -11,10 +11,15 @@
     "clean": "rm -rf .next dist"
   },
   "dependencies": {
+    "@better-auth/stripe": "^1.6.11",
     "@hookform/resolvers": "^5.4.0",
+    "@repo/auth": "workspace:*",
+    "better-auth": "^1.6.11",
     "@repo/cloud-infra": "workspace:*",
     "@repo/comfyui-client": "workspace:*",
+    "@repo/db": "workspace:*",
     "@repo/gcs-storage": "workspace:*",
+    "@repo/payments": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.100.14",

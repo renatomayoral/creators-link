@@ -133,7 +133,7 @@ const plans = [
       'Email support',
     ],
     cta: 'Get Started',
-    href: '/dashboard',
+    href: '/login',
   },
   {
     name: 'Creator',
@@ -151,7 +151,7 @@ const plans = [
       '24/7 priority support',
     ],
     cta: 'Start Creating',
-    href: '/dashboard',
+    href: '/login',
   },
   {
     name: 'Studio',
@@ -169,7 +169,7 @@ const plans = [
       'SLA + dedicated support',
     ],
     cta: 'Contact Sales',
-    href: '/dashboard',
+    href: '/login',
   },
 ]
 
@@ -269,13 +269,13 @@ export default function LandingPage() {
               {/* CTA */}
               <div className="flex items-center gap-3">
                 <Link
-                  href="/dashboard"
+                  href="/login"
                   className="hidden sm:inline-flex text-sm text-zinc-400 hover:text-white transition-colors"
                 >
                   Sign in
                 </Link>
                 <Link
-                  href="/dashboard"
+                  href="/login"
                   className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
                 >
@@ -343,7 +343,7 @@ export default function LandingPage() {
               {/* CTAs */}
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/dashboard"
+                  href="/login"
                   className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold text-white transition-all hover:opacity-90 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-500 shadow-lg shadow-violet-900/40"
                   style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
                 >
@@ -652,7 +652,7 @@ export default function LandingPage() {
                   </p>
                   <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
-                      href="/dashboard"
+                      href="/login"
                       className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-bold text-violet-900 transition-all hover:bg-violet-50 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white shadow-lg"
                     >
                       Get Started Free
@@ -712,7 +712,7 @@ export default function LandingPage() {
                     { label: 'Features', href: '#features' },
                     { label: 'Pricing', href: '#pricing' },
                     { label: 'How it works', href: '#how-it-works' },
-                    { label: 'API Docs', href: '/dashboard' },
+                    { label: 'API Docs', href: '/login' },
                   ].map(({ label, href }) => (
                     <li key={label}>
                       <Link href={href} className="text-sm text-zinc-400 hover:text-white transition-colors">
@@ -728,10 +728,10 @@ export default function LandingPage() {
                 <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">Legal</h3>
                 <ul className="space-y-3">
                   {[
-                    { label: 'Terms of Service', href: '/dashboard' },
-                    { label: 'Privacy Policy', href: '/dashboard' },
-                    { label: 'Cookie Policy', href: '/dashboard' },
-                    { label: '2257 Compliance', href: '/dashboard' },
+                    { label: 'Terms of Service', href: '/login' },
+                    { label: 'Privacy Policy', href: '/login' },
+                    { label: 'Cookie Policy', href: '/login' },
+                    { label: '2257 Compliance', href: '/login' },
                   ].map(({ label, href }) => (
                     <li key={label}>
                       <Link href={href} className="text-sm text-zinc-400 hover:text-white transition-colors">
@@ -747,10 +747,10 @@ export default function LandingPage() {
                 <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">Support</h3>
                 <ul className="space-y-3">
                   {[
-                    { label: 'Documentation', href: '/dashboard' },
-                    { label: 'Contact', href: '/dashboard' },
-                    { label: 'Status', href: '/dashboard' },
-                    { label: 'Discord', href: '/dashboard' },
+                    { label: 'Documentation', href: '/login' },
+                    { label: 'Contact', href: '/login' },
+                    { label: 'Status', href: '/login' },
+                    { label: 'Discord', href: '/login' },
                   ].map(({ label, href }) => (
                     <li key={label}>
                       <Link href={href} className="text-sm text-zinc-400 hover:text-white transition-colors">
