@@ -34,13 +34,16 @@ async function handler(
   const search = req.nextUrl.search ?? ''
   const targetUrl = `${COMFYUI_BASE}/${pathStr}${search}`
 
-  // Forward headers (strip host)
+  // Forward headers — strip host/connection and spoof origin so ComfyUI's
+  // CORS origin check passes (it rejects requests whose Origin != server host).
   const headers = new Headers()
   req.headers.forEach((value, key) => {
-    if (!['host', 'connection'].includes(key.toLowerCase())) {
-      headers.set(key, value)
-    }
+    if (['host', 'connection', 'origin', 'referer'].includes(key.toLowerCase())) return
+    headers.set(key, value)
   })
+  // Present as same-origin to ComfyUI
+  headers.set('origin', 'http://127.0.0.1:8188')
+  headers.set('referer', 'http://127.0.0.1:8188/')
 
   // Stream body for POST/PUT
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(req.method)

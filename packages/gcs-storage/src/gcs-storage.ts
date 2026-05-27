@@ -99,6 +99,28 @@ export class GCSStorage {
     return `gs://${this.bucketName}/${remotePath}`
   }
 
+  /**
+   * Upload a Buffer or Uint8Array directly to GCS (no local file needed).
+   * Returns the GCS URI.
+   */
+  async uploadBuffer(
+    data: Buffer | Uint8Array,
+    remotePath: string,
+    contentType = 'application/octet-stream',
+    customMetadata?: Record<string, string>,
+  ): Promise<string> {
+    const bucket = this.storage.bucket(this.bucketName)
+    const file   = bucket.file(remotePath)
+    await file.save(Buffer.from(data), {
+      contentType,
+      metadata: {
+        cacheControl: 'no-cache',
+        metadata: customMetadata,
+      },
+    })
+    return `gs://${this.bucketName}/${remotePath}`
+  }
+
   async getStorageStats(): Promise<StorageStats> {
     const assets = await this.listAssets()
     const imageCount = assets.filter((a) => a.type === 'image').length

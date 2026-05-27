@@ -8,7 +8,7 @@ import { authClient } from '@repo/auth/client'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: Cpu },
-  { href: '/generate', label: 'Gerar', icon: Image },
+  { href: '/studio', label: 'Studio', icon: Image },
   { href: '/library', label: 'Biblioteca', icon: Library },
   { href: '/settings', label: 'Configurações', icon: Settings },
 ]

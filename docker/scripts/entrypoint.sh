@@ -29,6 +29,9 @@ fi
 
 echo "ComfyUI flags: ${COMFYUI_FLAGS}"
 
+# Ensure output directory exists on the data volume
+mkdir -p "${DATA_PATH}/outputs"
+
 # Start GCS watcher in background
 if [ -n "${GCS_BUCKET}" ]; then
     /app/scripts/save_metadata.sh "${DATA_PATH}/outputs" "${GCS_BUCKET}" &
@@ -37,10 +40,12 @@ fi
 
 # Start ComfyUI
 cd "${COMFYUI_PATH}"
-# ComfyUI listens on 0.0.0.0 INSIDE the container so Docker NAT can forward.
-# Security is enforced by the Docker binding: -p 127.0.0.1:8188:8188
-# which restricts access to VM localhost only (not public internet).
+# --output-directory points ComfyUI output to /data/outputs (on the volume)
+# so the GCS watcher picks up files, and outputs survive container restarts.
+# ComfyUI listens on 0.0.0.0 INSIDE the container; security is enforced by
+# Docker binding: --network host with ComfyUI bound to 127.0.0.1 on the VM.
 exec python3 main.py \
     --listen 0.0.0.0 \
     --port 8188 \
+    --output-directory "${DATA_PATH}/outputs" \
     ${COMFYUI_FLAGS}

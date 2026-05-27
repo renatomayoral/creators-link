@@ -1,9 +1,21 @@
 import type { ComfyWorkflow, FLUXParams } from '@repo/shared/types'
 
+/**
+ * FLUX.2-dev workflow
+ *
+ * Models on disk:
+ *  - diffusion_models/flux2_dev_fp8mixed.safetensors
+ *  - text_encoders/mistral_3_small_flux2_fp8.safetensors
+ *  - vae/flux2-vae.safetensors
+ *
+ * Key differences from FLUX.1:
+ *  - Single text encoder (Mistral-3-Small replaces T5+CLIP-L)
+ *  - FluxGuidance node handles CFG — KSampler uses cfg=1
+ *  - CLIPTextEncode (not CLIPTextEncodeFlux) since single encoder
+ */
 export function createFLUXWorkflow(params: FLUXParams): ComfyWorkflow {
   const {
     prompt,
-    negativePrompt = '',
     width = 1024,
     height = 1024,
     steps = 20,
@@ -12,44 +24,52 @@ export function createFLUXWorkflow(params: FLUXParams): ComfyWorkflow {
   } = params
 
   return {
+    // ── Model loaders ──────────────────────────────────────────────────────
     '1': {
       class_type: 'UNETLoader',
       inputs: {
-        unet_name: 'flux1-dev.safetensors',
+        unet_name: 'flux2_dev_fp8mixed.safetensors',
         weight_dtype: 'fp8_e4m3fn',
       },
     },
     '2': {
       class_type: 'CLIPLoader',
       inputs: {
-        clip_name1: 't5xxl_fp16.safetensors',
-        clip_name2: 'clip_l.safetensors',
-        type: 'flux',
+        clip_name: 'mistral_3_small_flux2_fp8.safetensors',
+        type: 'flux2',
       },
     },
     '3': {
       class_type: 'VAELoader',
       inputs: {
-        vae_name: 'ae.safetensors',
+        vae_name: 'flux2-vae.safetensors',
       },
     },
+    // ── Text encoding ──────────────────────────────────────────────────────
     '4': {
-      class_type: 'CLIPTextEncodeFlux',
-      inputs: {
-        clip: ['2', 0],
-        clip_l: prompt,
-        t5xxl: prompt,
-        guidance: cfg,
-      },
-    },
-    '5': {
       class_type: 'CLIPTextEncode',
       inputs: {
         clip: ['2', 0],
-        text: negativePrompt,
+        text: prompt,
       },
     },
+    // ── FluxGuidance embeds CFG into conditioning (KSampler uses cfg=1) ───
+    '5': {
+      class_type: 'FluxGuidance',
+      inputs: {
+        conditioning: ['4', 0],
+        guidance: cfg,
+      },
+    },
+    // ── Empty conditioning for negative (FLUX doesn't use negative prompts)
     '6': {
+      class_type: 'ConditioningZeroOut',
+      inputs: {
+        conditioning: ['4', 0],
+      },
+    },
+    // ── Latent ────────────────────────────────────────────────────────────
+    '7': {
       class_type: 'EmptyLatentImage',
       inputs: {
         width,
@@ -57,33 +77,35 @@ export function createFLUXWorkflow(params: FLUXParams): ComfyWorkflow {
         batch_size: 1,
       },
     },
-    '7': {
+    // ── Sampling ──────────────────────────────────────────────────────────
+    '8': {
       class_type: 'KSampler',
       inputs: {
         model: ['1', 0],
-        positive: ['4', 0],
-        negative: ['5', 0],
-        latent_image: ['6', 0],
+        positive: ['5', 0],
+        negative: ['6', 0],
+        latent_image: ['7', 0],
         sampler_name: 'euler',
         scheduler: 'simple',
         steps,
-        cfg,
+        cfg: 1,      // guidance is handled by FluxGuidance node
         seed,
         denoise: 1.0,
       },
     },
-    '8': {
+    // ── Decode + Save ─────────────────────────────────────────────────────
+    '9': {
       class_type: 'VAEDecode',
       inputs: {
-        samples: ['7', 0],
+        samples: ['8', 0],
         vae: ['3', 0],
       },
     },
-    '9': {
+    '10': {
       class_type: 'SaveImage',
       inputs: {
-        images: ['8', 0],
-        filename_prefix: 'flux',
+        images: ['9', 0],
+        filename_prefix: 'flux2',
       },
     },
   }

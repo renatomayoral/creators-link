@@ -39,7 +39,16 @@ while read -r filepath; do
         fi
     fi
 
-    gcloud storage cp "${filepath}" "gs://${GCS_BUCKET}/${gcs_path}" \
+    if gcloud storage cp "${filepath}" "gs://${GCS_BUCKET}/${gcs_path}" \
         ${metadata_flags} \
-        2>/dev/null && echo "✓ Uploaded: ${filename}" || echo "✗ Failed: ${filename}"
+        2>/dev/null; then
+        echo "✓ Uploaded: ${filename}"
+        # Remove from VM after confirmed upload to GCS
+        rm -f "${filepath}"
+        # Also remove companion JSON if it exists
+        [ -f "${metadata_file}" ] && rm -f "${metadata_file}"
+        echo "🗑 Removed local: ${filename}"
+    else
+        echo "✗ Failed: ${filename} (kept on disk)"
+    fi
 done
