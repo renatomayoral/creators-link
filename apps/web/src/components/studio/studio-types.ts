@@ -9,7 +9,7 @@ export const generateSchema = z.object({
   height:         z.number().min(256).max(2048),
   steps:          z.number().min(1).max(100),
   cfg:            z.number().min(1).max(30),
-  seed:           z.number(),
+  seed:           z.number().min(0),
   frames:         z.number().min(16).max(200).optional(),
 })
 

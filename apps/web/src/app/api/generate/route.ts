@@ -18,7 +18,8 @@ const generateSchema = z.object({
   height: z.number().min(256).max(2048).default(1024),
   steps: z.number().min(1).max(100).default(20),
   cfg: z.number().min(1).max(30).default(3.5),
-  seed: z.number().default(() => Math.floor(Math.random() * 2 ** 32)),
+  seed: z.number().default(() => Math.floor(Math.random() * 2 ** 32))
+    .transform((v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : Math.floor(Math.random() * 2 ** 32))),
   frames: z.number().min(16).max(200).optional(),
   imageBase64: z.string().optional(),
   /** Set to true by free-tier users consuming their one-time welcome video */
@@ -123,9 +124,21 @@ export async function POST(req: NextRequest) {
 
   let workflow
   if (data.rawWorkflow) {
-    // Power-user path: JSON editor sent a hand-edited workflow directly
+    // Power-user path: JSON editor sent a hand-edited workflow directly.
+    // Sanitize any seed values across all nodes — ComfyUI requires seed >= 0.
+    const raw = data.rawWorkflow as Record<string, { inputs?: Record<string, unknown> }>
+    for (const node of Object.values(raw)) {
+      if (node?.inputs && typeof node.inputs['seed'] === 'number') {
+        const s = node.inputs['seed'] as number
+        if (!Number.isFinite(s) || s < 0) {
+          node.inputs['seed'] = Math.floor(Math.random() * 2 ** 32)
+        } else {
+          node.inputs['seed'] = Math.floor(s)
+        }
+      }
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    workflow = data.rawWorkflow as any
+    workflow = raw as any
   } else {
     if (data.model === 'wan-i2v' && !data.imageBase64) {
       return NextResponse.json(

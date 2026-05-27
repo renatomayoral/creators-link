@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, use, useCallback, useEffect, useState } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -11,6 +11,66 @@ import { createFLUXWorkflow, createWanT2VWorkflow, createWanI2VWorkflow } from '
 import { generateSchema, type GenerateForm, type JobStatus } from './studio-types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+type ComfyNode = { class_type: string; inputs: Record<string, unknown> }
+type ComfyWf   = Record<string, ComfyNode>
+
+/** Extract form field values from a parsed ComfyUI workflow JSON */
+function extractFormValues(tab: string, wf: ComfyWf): Partial<GenerateForm> {
+  const str  = (v: unknown): string | undefined => typeof v === 'string' ? v : undefined
+  const num  = (v: unknown): number | undefined => typeof v === 'number' ? v : undefined
+
+  if (tab === 'flux') {
+    // node '4' = CLIPTextEncode (prompt)
+    // node '5' = FluxGuidance   (cfg via guidance)
+    // node '7' = EmptyLatentImage (width, height)
+    // node '8' = KSampler        (steps, seed)
+    return {
+      prompt:  str(wf['4']?.inputs?.text),
+      cfg:     num(wf['5']?.inputs?.guidance),
+      width:   num(wf['7']?.inputs?.width),
+      height:  num(wf['7']?.inputs?.height),
+      steps:   num(wf['8']?.inputs?.steps),
+      seed:    num(wf['8']?.inputs?.seed),
+    }
+  }
+
+  if (tab === 'wan-t2v') {
+    // node '4' = CLIPTextEncode positive
+    // node '5' = CLIPTextEncode negative
+    // node '6' = WanImageToVideo (width, height, length→frames)
+    // node '7' = KSampler        (steps, cfg, seed)
+    return {
+      prompt:         str(wf['4']?.inputs?.text),
+      negativePrompt: str(wf['5']?.inputs?.text),
+      width:          num(wf['6']?.inputs?.width),
+      height:         num(wf['6']?.inputs?.height),
+      frames:         num(wf['6']?.inputs?.length),
+      steps:          num(wf['7']?.inputs?.steps),
+      cfg:            num(wf['7']?.inputs?.cfg),
+      seed:           num(wf['7']?.inputs?.seed),
+    }
+  }
+
+  if (tab === 'wan-i2v') {
+    // node '5' = CLIPTextEncode positive
+    // node '6' = CLIPTextEncode negative
+    // node '7' = WanImageToVideo (width, height, length→frames)
+    // node '8' = KSampler        (steps, cfg, seed)
+    return {
+      prompt:         str(wf['5']?.inputs?.text),
+      negativePrompt: str(wf['6']?.inputs?.text),
+      width:          num(wf['7']?.inputs?.width),
+      height:         num(wf['7']?.inputs?.height),
+      frames:         num(wf['7']?.inputs?.length),
+      steps:          num(wf['8']?.inputs?.steps),
+      cfg:            num(wf['8']?.inputs?.cfg),
+      seed:           num(wf['8']?.inputs?.seed),
+    }
+  }
+
+  return {}
+}
 
 /** Build a formatted workflow JSON string from current form values */
 function buildWorkflowJson(modelTab: string, values: GenerateForm): string {
@@ -33,7 +93,6 @@ function buildWorkflowJson(modelTab: string, values: GenerateForm): string {
 
 type StudioState = {
   activeTab:    string
-  modelTab:     string   // last non-json tab — determines workflow model
   isVideo:      boolean
   isGenerating: boolean
   genProgress:  number
@@ -43,8 +102,9 @@ type StudioState = {
   vmReady:      boolean
   form:         UseFormReturn<GenerateForm>
   values:       GenerateForm
-  rawJson:      string
+  rawJson:      string       // derived: override ?? computed from form
   jsonError:    string | null
+  jsonDirty:    boolean      // true when user has manually edited this tab's JSON
 }
 
 type StudioActions = {
@@ -53,6 +113,7 @@ type StudioActions = {
   setAdvancedOpen: (v: boolean) => void
   setRawJson:      (json: string) => void
   refreshJson:     () => void
+  syncFromJson:    () => void   // parse rawJson and push values back into the form
 }
 
 type StudioContextValue = {
@@ -85,16 +146,23 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Tab state via URL so links/back-button work
-  const activeTab = searchParams.get('tab') ?? 'flux'
+  // Valid tabs: flux | wan-t2v | wan-i2v (no separate 'json' tab anymore)
+  const rawTab   = searchParams.get('tab') ?? 'flux'
+  const activeTab = ['flux', 'wan-t2v', 'wan-i2v'].includes(rawTab) ? rawTab : 'flux'
   const isVideo   = activeTab === 'wan-t2v' || activeTab === 'wan-i2v'
 
-  // modelTab: the last model tab that was active (never 'json')
-  // Used to know which model's workflow to compute/submit in JSON mode
-  const [modelTab, setModelTab] = useState<string>('flux')
+  // Per-tab JSON overrides: null = not edited, string = user's edited version
+  const [rawJsonOverrides, setRawJsonOverrides] = useState<Record<string, string | null>>({})
+  const [jsonError,        setJsonError]        = useState<string | null>(null)
 
-  // JSON editor state
-  const [rawJson,    setRawJson]    = useState<string>('')
-  const [jsonError,  setJsonError]  = useState<string | null>(null)
+  // Re-validate the current tab's override whenever activeTab changes
+  useEffect(() => {
+    const override = rawJsonOverrides[activeTab]
+    if (!override) { setJsonError(null); return }
+    try   { JSON.parse(override); setJsonError(null) }
+    catch (e) { setJsonError(e instanceof Error ? e.message : 'JSON inválido') }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
 
   // Generation state
   const [genProgress,  setGenProgress]  = useState(0)
@@ -121,12 +189,8 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const values  = form.watch()
   const vmReady = phase === 'ready'
 
-  // When switching tabs: update modelTab and reset resolution defaults
+  // When switching tabs: reset resolution defaults
   useEffect(() => {
-    if (activeTab === 'json') return  // JSON tab doesn't affect model or resolution
-
-    setModelTab(activeTab)
-
     if (activeTab === 'flux') {
       form.setValue('width',  832)
       form.setValue('height', 1216)
@@ -138,32 +202,28 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
-  // When switching to JSON tab, compute the workflow from current form state
-  useEffect(() => {
-    if (activeTab !== 'json') return
-    setRawJson(buildWorkflowJson(modelTab, values))
-    setJsonError(null)
-  // Intentionally NOT watching `values` — we snapshot on tab switch, not on every keystroke
+  // Derived rawJson: user override if present, otherwise computed from form
+  const rawJson = useMemo(() => {
+    const override = rawJsonOverrides[activeTab]
+    if (override != null) return override
+    return buildWorkflowJson(activeTab, values)
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, rawJsonOverrides[activeTab], values])
+
+  const jsonDirty = (rawJsonOverrides[activeTab] ?? null) !== null
+
+  // Edit JSON for the current tab
+  const handleSetRawJson = useCallback((json: string) => {
+    setRawJsonOverrides(prev => ({ ...prev, [activeTab]: json }))
+    try   { JSON.parse(json); setJsonError(null) }
+    catch (e) { setJsonError(e instanceof Error ? e.message : 'JSON inválido') }
   }, [activeTab])
 
-  // Update rawJson parse error on every change
-  const handleSetRawJson = useCallback((json: string) => {
-    setRawJson(json)
-    try {
-      JSON.parse(json)
-      setJsonError(null)
-    } catch (e) {
-      setJsonError(e instanceof Error ? e.message : 'JSON inválido')
-    }
-  }, [])
-
-  // Recompute workflow JSON from current form values (snapshot now)
+  // Discard override and go back to computed workflow
   const refreshJson = useCallback(() => {
-    const json = buildWorkflowJson(modelTab, form.getValues())
-    setRawJson(json)
+    setRawJsonOverrides(prev => ({ ...prev, [activeTab]: null }))
     setJsonError(null)
-  }, [modelTab, form])
+  }, [activeTab])
 
   const setActiveTab = useCallback(
     (tab: string) => router.replace(`/studio?tab=${tab}`, { scroll: false }),
@@ -172,17 +232,17 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   const { mutate: generate } = useMutation({
     mutationFn: async (data: GenerateForm) => {
-      // In JSON mode: send the raw (possibly edited) workflow directly
-      let body: Record<string, unknown> = { ...data, model: modelTab }
+      const override = rawJsonOverrides[activeTab]
+      let body: Record<string, unknown> = { ...data, model: activeTab }
 
-      if (activeTab === 'json') {
+      if (override != null) {
         let parsed: unknown
         try {
-          parsed = JSON.parse(rawJson)
+          parsed = JSON.parse(override)
         } catch (e) {
           throw new Error(`JSON inválido: ${e instanceof Error ? e.message : String(e)}`)
         }
-        body = { ...data, model: modelTab, rawWorkflow: parsed }
+        body = { ...data, model: activeTab, rawWorkflow: parsed }
       }
 
       const res = await fetch('/api/generate', {
@@ -228,21 +288,39 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     },
   })
 
-  // submit: in JSON mode bypass form validation; in model mode run it
+  // Parse rawJson and push recognised fields back into the form
+  const syncFromJson = useCallback(() => {
+    const override = rawJsonOverrides[activeTab]
+    if (!override) return
+    let wf: ComfyWf
+    try {
+      wf = JSON.parse(override) as ComfyWf
+    } catch {
+      toast({ title: 'JSON inválido', description: 'Corrija o JSON antes de salvar.', variant: 'destructive' })
+      return
+    }
+    const extracted = extractFormValues(activeTab, wf)
+    for (const [key, val] of Object.entries(extracted)) {
+      if (val !== undefined) {
+        form.setValue(key as keyof GenerateForm, val as never)
+      }
+    }
+    toast({ title: 'Configurações atualizadas a partir do JSON' })
+  }, [activeTab, rawJsonOverrides, form, toast])
+
+  // submit: if JSON dirty, skip form validation (raw workflow goes as-is)
   const submit = useCallback(() => {
-    if (activeTab === 'json') {
-      // Don't validate form fields — raw workflow is what gets sent
+    if (jsonDirty) {
       generate(form.getValues())
     } else {
       form.handleSubmit((d) => generate(d))()
     }
-  }, [activeTab, form, generate])
+  }, [jsonDirty, form, generate])
 
   return (
     <StudioContext value={{
       state: {
         activeTab,
-        modelTab,
         isVideo,
         isGenerating,
         genProgress,
@@ -254,6 +332,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         values,
         rawJson,
         jsonError,
+        jsonDirty,
       },
       actions: {
         setActiveTab,
@@ -261,6 +340,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         setAdvancedOpen,
         setRawJson: handleSetRawJson,
         refreshJson,
+        syncFromJson,
       },
     }}>
       {children}

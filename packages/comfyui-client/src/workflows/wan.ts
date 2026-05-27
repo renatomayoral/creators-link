@@ -24,6 +24,8 @@ export function createWanT2VWorkflow(params: WanT2VParams): ComfyWorkflow {
     seed    = Math.floor(Math.random() * 2 ** 32),
   } = params
 
+  const safeSeed = Math.max(0, Math.floor(seed))
+
   return {
     // ── Model loaders ─────────────────────────────────────────────────────────
     '1': {
@@ -82,7 +84,7 @@ export function createWanT2VWorkflow(params: WanT2VParams): ComfyWorkflow {
         scheduler:    'simple',
         steps,
         cfg,
-        seed,
+        seed: safeSeed,
         denoise: 1.0,
       },
     },
@@ -130,6 +132,8 @@ export function createWanI2VWorkflow(params: WanI2VParams): ComfyWorkflow {
     seed        = Math.floor(Math.random() * 2 ** 32),
     imageBase64,
   } = params
+
+  const safeSeed = Math.max(0, Math.floor(seed))
 
   return {
     // ── Model loaders ─────────────────────────────────────────────────────────
@@ -194,7 +198,7 @@ export function createWanI2VWorkflow(params: WanI2VParams): ComfyWorkflow {
         scheduler:    'simple',
         steps,
         cfg,
-        seed,
+        seed: safeSeed,
         denoise: 1.0,
       },
     },

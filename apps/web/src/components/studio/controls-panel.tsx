@@ -195,9 +195,10 @@ export function ControlsPanel() {
               <input
                 id={seedId}
                 type="number"
+                min={0}
                 autoComplete="off"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm font-mono tabular-nums focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                {...register('seed', { valueAsNumber: true })}
+                {...register('seed', { valueAsNumber: true, min: 0 })}
               />
               <Button
                 type="button"

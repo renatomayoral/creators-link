@@ -23,6 +23,8 @@ export function createFLUXWorkflow(params: FLUXParams): ComfyWorkflow {
     seed = Math.floor(Math.random() * 2 ** 32),
   } = params
 
+  const safeSeed = Math.max(0, Math.floor(seed))
+
   return {
     // ── Model loaders ──────────────────────────────────────────────────────
     '1': {
@@ -89,7 +91,7 @@ export function createFLUXWorkflow(params: FLUXParams): ComfyWorkflow {
         scheduler: 'simple',
         steps,
         cfg: 1,      // guidance is handled by FluxGuidance node
-        seed,
+        seed: safeSeed,
         denoise: 1.0,
       },
     },
