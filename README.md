@@ -1,163 +1,100 @@
-# 🎬 NFSW AI Studio
+# Creators feature — link-in-bio pages + click tracking
 
-Dashboard para geração de vídeo e imagem com IA no Google Cloud Platform.
+Drop-in package for **nfsw-ai-studio** (`apps/web`, App Router, Drizzle, Better Auth,
+TanStack Query, `@repo/ui` shadcn slate-dark). It adds:
 
-**Stack**: ComfyUI + Wan 2.2 + FLUX.1 | Next.js 16 | Turborepo | TypeScript
+- **`/creators`** — authenticated dashboard to manage one link-in-bio page per
+  content creator, with 30-day click metrics and a per-platform tracking panel.
+- **`/p/[slug]`** — the public link-in-bio page (the "Babi Barelli" Neon Spotlight
+  design), server-rendered with ISR + SEO metadata + `next/image`.
+- **`/r/[linkId]`** — redirect endpoint that records every outbound click, then
+  302s to the destination. This is what makes the tracking work.
 
----
-
-## Visão Geral
-
-| Recurso | Detalhe |
-|---------|---------|
-| **GCP Project** | `mktia-ai-studio` (448251250847) |
-| **GCS Bucket** | `mktia-ai-studio-outputs` |
-| **Zona padrão** | `us-central1-a` |
-| **Docker Registry** | `ghcr.io/renatomayoral/nfsw-ai-studio:latest` |
-
----
-
-## Pré-requisitos
-
-- Node.js ≥ 20
-- pnpm ≥ 9
-- `gcloud` CLI autenticado: `gcloud auth application-default login`
-- (Para VM) GPU NVIDIA com ≥38GB VRAM
+Everything matches the repo's existing conventions: Drizzle (`db.query` / `db.insert`),
+`randomUUID()` ids, `auth.api.getSession({ headers })` guards, `NextResponse`,
+`@repo/ui` components, lucide icons, Portuguese UI copy.
 
 ---
 
-## Estrutura
+## File map (paths are relative to the repo root)
 
 ```
-nfsw-ai-studio/
-├── apps/web/              # Next.js 16 dashboard
-├── packages/
-│   ├── shared/            # Tipos TypeScript e utilitários
-│   ├── ui/                # shadcn/ui componentes
-│   ├── gcs-storage/       # Google Cloud Storage client
-│   ├── cloud-infra/       # GCP + RunPod providers
-│   └── comfyui-client/    # ComfyUI API client + workflows
-├── docker/                # Dockerfile + scripts de container
-├── scripts/vm/            # Scripts para VM GCP
-└── .github/workflows/     # CI/CD
+packages/db/src/creators.ts                         ← new tables (creator, creatorLink, linkClick)
+apps/web/src/lib/creators.ts                        ← PLATFORMS, slugify, API types
+apps/web/src/app/api/creators/route.ts              ← GET list + POST create
+apps/web/src/app/api/creators/[id]/route.ts         ← GET detail + PATCH + DELETE
+apps/web/src/app/r/[linkId]/route.ts                ← click-tracking redirect
+apps/web/src/app/(app)/creators/page.tsx            ← dashboard (client)
+apps/web/src/app/p/[slug]/page.tsx                  ← public page (server, ISR)
+apps/web/src/components/navigation.tsx              ← UPDATED: adds the "Criadoras" tab
 ```
+
+Patches (apply by hand — they touch existing files):
+
+```
+patches/schema.ts.patch.md          ← add 3 tables to the schema export
+patches/globals.css.append.css      ← append the 3 keyframes used by /p/[slug]
+```
+
+> Note: `apps/web/src/app/p/` sits **outside** the `(app)` and `(landing)` route
+> groups on purpose — the public page must not inherit the authed `Navigation`
+> chrome. Next.js serves it at `/p/[slug]` regardless.
 
 ---
 
-## Setup Local (Dashboard)
+## Install
+
+1. **Copy the files** into the repo at the paths above (overwrite `navigation.tsx`).
+2. **Schema** — follow `patches/schema.ts.patch.md`, then generate + run the
+   Drizzle migration (creates `creator`, `creator_link`, `link_click`).
+3. **CSS** — append `patches/globals.css.append.css` to
+   `packages/ui/src/globals.css`.
+4. **Avatars** — the public page uses `next/image` with `creator.avatarUrl`. For
+   remote hosts add them to `images.remotePatterns` in `apps/web/next.config.ts`
+   (the GCS bucket is the natural place to store creator photos — reuse
+   `@repo/gcs-storage` for uploads).
+5. `pnpm dev` → visit `/creators`, create a page, publish it (`status: 'live'`),
+   then open `/p/{slug}`.
+
+---
+
+## How tracking works
+
+```
+Public page button  →  /r/{linkId}  →  INSERT link_click  →  302 to real URL
+                                         (fire-and-forget;
+                                          never blocks the user)
+```
+
+- `link_click.creatorId` is **denormalised** so per-creator aggregation needs no
+  join (see the indexes in `creators.ts`).
+- Dashboard metrics are computed live with SQL `count(*)` + `date_trunc('day', …)`
+  windows (30d totals, 30d-vs-prior-30d % change, 12-bucket sparkline, 14-day
+  series, per-platform breakdown). For high traffic, swap the live queries for a
+  nightly rollup table (`link_click_daily`) — the route shapes stay identical.
+
+---
+
+## Lighthouse notes (public page)
+
+- LCP: avatar is `next/image` with `priority` + explicit `sizes="132px"` → no CLS.
+- Fonts: the app already loads Inter via `next/font` — no extra render-blocking.
+- A11y: `alt` on the avatar, `aria-label` on the verified badge, `aria-hidden` on
+  the glow, AA contrast (white on `#0a0a0c`).
+- Motion: all entrance/loop animations are gated behind
+  `@media (prefers-reduced-motion: reduce)`.
+- Add `rel="noopener noreferrer"` if you later point links straight at external
+  URLs instead of through `/r/[linkId]`.
+
+---
+
+## Suggested commit / PR
 
 ```bash
-# 1. Instalar dependências
-pnpm install
-
-# 2. Configurar variáveis de ambiente
-cp .env.example .env.local
-# Editar .env.local com seus valores
-
-# 3. Iniciar dev server
-pnpm dev
+git checkout -b feat/creators-link-pages
+# copy files + apply patches + run migration
+git add .
+git commit -m "feat(creators): link-in-bio pages with per-platform click tracking"
+git push -u origin feat/creators-link-pages
+# open the PR on GitHub
 ```
-
-Acesse em [http://localhost:3000](http://localhost:3000)
-
----
-
-## Setup VM GCP
-
-### 1. Criar a VM
-
-```bash
-gcloud compute instances create ai-studio-vm \
-  --project=mktia-ai-studio \
-  --zone=us-central1-a \
-  --machine-type=n1-standard-8 \
-  --accelerator=type=nvidia-tesla-a100,count=1 \
-  --maintenance-policy=TERMINATE \
-  --boot-disk-size=100GB \
-  --boot-disk-type=pd-ssd \
-  --create-disk=name=ai-studio-data,size=500GB,type=pd-ssd \
-  --image-family=common-cu121-debian-11-py310 \
-  --image-project=deeplearning-platform-release
-```
-
-### 2. Setup inicial
-
-```bash
-gcloud compute ssh ai-studio-vm --project=mktia-ai-studio -- 'bash -s' < scripts/vm/setup.sh
-```
-
-### 3. Baixar modelos (~100GB, 30-40min)
-
-```bash
-gcloud compute ssh ai-studio-vm --project=mktia-ai-studio \
-  --command="HF_TOKEN=hf_xxx DATA_PATH=/data bash /tmp/download_models.sh"
-```
-
-### 4. Iniciar ComfyUI
-
-```bash
-# Na VM:
-bash scripts/vm/start_comfyui.sh
-
-# Criar SSH tunnel local:
-gcloud compute ssh ai-studio-vm --project=mktia-ai-studio -- -L 8188:localhost:8188 -N &
-```
-
----
-
-## Docker (RunPod)
-
-A imagem Docker contém ComfyUI + custom nodes mas **não os modelos** (ficam no volume `/data`).
-
-```bash
-# Build local
-docker build -t nfsw-ai-studio ./docker
-
-# A imagem é publicada automaticamente via GitHub Actions
-# ghcr.io/renatomayoral/nfsw-ai-studio:latest
-```
-
----
-
-## Modelos
-
-| Modelo | Tamanho | Path |
-|--------|---------|------|
-| Wan 2.2 T2V-A14B FP8 | ~28GB | `diffusion_models/` |
-| Wan 2.2 I2V-A14B FP8 | ~28GB | `diffusion_models/` |
-| FLUX.1-dev | ~24GB | `unet/` |
-| T5-XXL FP16 | ~9GB | `text_encoders/` |
-| CLIP-L | ~0.5GB | `text_encoders/` |
-| VAE (ae + wan) | ~0.6GB | `vae/` |
-| **Total** | **~100GB** | |
-
----
-
-## API Routes
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/api/vm/start` | Iniciar VM/Pod |
-| `POST` | `/api/vm/stop` | Parar VM/Pod |
-| `DELETE` | `/api/vm` | Deletar Pod (RunPod only) |
-| `GET` | `/api/vm/status` | Status e métricas GPU |
-| `POST` | `/api/generate` | Submeter job ao ComfyUI |
-| `GET` | `/api/generate/[jobId]/status` | SSE stream de progresso |
-| `GET` | `/api/library` | Listar assets do GCS |
-| `GET` | `/api/library/stats` | Stats do bucket |
-| `GET` | `/api/library/[id]/download` | Signed URL de download |
-| `DELETE` | `/api/library/[id]` | Deletar asset |
-| `GET` | `/api/credits` | Saldo de créditos |
-| `GET` | `/api/health` | Health check |
-
----
-
-## CI/CD
-
-O GitHub Actions ([.github/workflows/docker-build.yml](.github/workflows/docker-build.yml)) builda e publica automaticamente a imagem Docker no GHCR quando há mudanças em `docker/`.
-
----
-
-## Licença
-
-MIT

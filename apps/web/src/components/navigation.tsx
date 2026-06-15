@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@repo/ui/lib/utils'
-import { Cpu, Image, Library, Settings, LogOut } from 'lucide-react'
+import { Cpu, Image, Library, Settings, LogOut, Link2 } from 'lucide-react'
 import { authClient } from '@repo/auth/client'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: Cpu },
   { href: '/studio', label: 'Studio', icon: Image },
+  { href: '/creators', label: 'Criadoras', icon: Link2 },
   { href: '/library', label: 'Biblioteca', icon: Library },
   { href: '/settings', label: 'Configurações', icon: Settings },
 ]
@@ -37,7 +38,9 @@ export function Navigation() {
                 href={href}
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                  pathname === href || (href === '/admin' && pathname.startsWith('/admin'))
+                  pathname === href ||
+                    (href === '/admin' && pathname.startsWith('/admin')) ||
+                    (href === '/creators' && pathname.startsWith('/creators'))
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent',
                 )}

@@ -1,0 +1,26 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   CREATORS FEATURE — append these to packages/ui/src/globals.css
+   (used by the public /p/[slug] link-in-bio page)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes cspin {
+  to { transform: rotate(360deg); }
+}
+@keyframes cfloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes cglow {
+  0%, 100% { opacity: .4; }
+  50% { opacity: .62; }
+}
+
+.animate-cspin  { animation: cspin 6s linear infinite; }
+.animate-cfloat { animation: cfloat 7s ease-in-out infinite; }
+.animate-cglow  { animation: cglow 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-cspin,
+  .animate-cfloat,
+  .animate-cglow { animation: none !important; }
+}
