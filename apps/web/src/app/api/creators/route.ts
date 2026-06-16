@@ -106,6 +106,7 @@ export async function GET(req: NextRequest) {
       handle: c.handle,
       slug: c.slug,
       avatarUrl: c.avatarUrl,
+      customDomain: c.customDomain ?? null,
       status: c.status as 'live' | 'draft',
       clicks30d,
       change,

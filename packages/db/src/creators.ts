@@ -47,6 +47,8 @@ export const creator = pgTable(
     avatarUrl: text('avatar_url'),
     /** Neon accent used by the public page */
     accentColor: text('accent_color').$defaultFn(() => '#ec4899').notNull(),
+    /** Custom domain the creator owns, e.g. "amanda-zarayeva.com" */
+    customDomain: text('custom_domain').unique(),
     /** 'live' | 'draft' */
     status: text('status').$defaultFn(() => 'draft').notNull(),
     createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),

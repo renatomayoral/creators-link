@@ -14,7 +14,7 @@ import {
 import { Button } from '@repo/ui/components/button'
 import { Input } from '@repo/ui/components/input'
 import { useToast } from '@repo/ui/hooks/use-toast'
-import { Plus, Copy, ChevronRight, Users, MousePointerClick, ExternalLink, Settings2, Camera, X } from 'lucide-react'
+import { Plus, Copy, ChevronRight, Users, MousePointerClick, ExternalLink, Settings2, Camera, X, Globe, Check, Loader2 } from 'lucide-react'
 import {
   slugify,
   type CreatorListRow,
@@ -336,7 +336,36 @@ function CreatorRow({ c, selected, onSelect }: { c: CreatorListRow; selected: bo
 
 // ─── Tracking detail ──────────────────────────────────────────────────────────
 function Tracking({ detail }: { detail: CreatorDetail }) {
+  const qc = useQueryClient()
+  const { toast } = useToast()
   const maxD = Math.max(1, ...detail.daily)
+
+  const [domainInput, setDomainInput] = useState(detail.customDomain ?? '')
+  const [domainSaving, setDomainSaving] = useState(false)
+
+  const publicUrl = detail.customDomain
+    ? `https://${detail.customDomain}`
+    : `${typeof location !== 'undefined' ? location.origin : ''}/p/${detail.slug}`
+
+  async function saveDomain() {
+    setDomainSaving(true)
+    try {
+      const res = await fetch(`/api/creators/${detail.id}/domain`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ customDomain: domainInput.trim() || null }),
+      })
+      const body = await res.json() as { error?: string; ok?: boolean }
+      if (!res.ok) throw new Error(typeof body.error === 'string' ? body.error : 'Erro ao salvar domínio')
+      toast({ title: domainInput.trim() ? 'Domínio salvo' : 'Domínio removido' })
+      void qc.invalidateQueries({ queryKey: ['creator', detail.id] })
+    } catch (e) {
+      toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' })
+    } finally {
+      setDomainSaving(false)
+    }
+  }
+
   return (
     <div className="rounded-2xl border bg-card">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
@@ -348,11 +377,11 @@ function Tracking({ detail }: { detail: CreatorDetail }) {
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <Link href={`/p/${detail.slug}`} target="_blank">
+          <a href={publicUrl} target="_blank" rel="noreferrer">
             <Button variant="outline" size="sm">
               <ExternalLink className="mr-1.5 h-3.5 w-3.5" />Ver página
             </Button>
-          </Link>
+          </a>
           <Button size="sm">Relatório completo</Button>
         </div>
       </div>
@@ -400,6 +429,50 @@ function Tracking({ detail }: { detail: CreatorDetail }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* ── Custom domain ───────────────────────────────────────────────────── */}
+      <div className="border-t px-5 py-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <span className="text-[13px] font-semibold">Domínio customizado</span>
+          {detail.customDomain && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+              <Check className="h-3 w-3" />Ativo
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <Input
+            value={domainInput}
+            onChange={(e) => setDomainInput(e.target.value)}
+            placeholder="ex: amanda-zarayeva.com"
+            className="font-mono text-sm"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={saveDomain}
+            disabled={domainSaving || domainInput === (detail.customDomain ?? '')}
+          >
+            {domainSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+          </Button>
+        </div>
+
+        <div className="mt-3 rounded-lg border bg-muted/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
+          <p className="font-semibold text-foreground">Como configurar</p>
+          <ol className="mt-1.5 list-decimal pl-4 space-y-1">
+            <li>No painel do seu domínio (Cloudflare, GoDaddy, etc.), crie um registro <strong>CNAME</strong>:</li>
+          </ol>
+          <pre className="mt-2 rounded bg-background px-3 py-2 font-mono text-[11px]">
+            {`${domainInput || 'seu-dominio.com'}  →  CNAME  →  ${process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'seu-app.vercel.app'}`}
+          </pre>
+          <ol className="mt-2 list-decimal pl-4 space-y-1" start={2}>
+            <li>Aguarde a propagação do DNS (pode levar até 24h).</li>
+            <li>Salve o domínio aqui acima — a página da criadora passará a responder no domínio dela.</li>
+          </ol>
         </div>
       </div>
     </div>

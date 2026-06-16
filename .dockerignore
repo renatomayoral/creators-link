@@ -1,7 +1,9 @@
 node_modules
-.next
-dist
+**/node_modules
+**/.next/cache
+**/.next/dev
 .turbo
+dist
 *.log
 .env
 .env.local
@@ -16,3 +18,5 @@ __pycache__
 *.pyc
 *.pyo
 .DS_Store
+docker
+scripts

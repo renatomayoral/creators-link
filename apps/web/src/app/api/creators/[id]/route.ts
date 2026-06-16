@@ -97,6 +97,7 @@ export async function GET(
     bio: c.bio,
     avatarUrl: c.avatarUrl,
     accentColor: c.accentColor,
+    customDomain: c.customDomain ?? null,
     status: c.status as 'live' | 'draft',
     totalClicks30d: total,
     daily,

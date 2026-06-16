@@ -8,15 +8,15 @@ on:
 env:
   PROJECT_ID: mktia-ai-studio
   REGION: us-central1
-  SERVICE: nfsw-ai-studio-web
-  IMAGE: gcr.io/mktia-ai-studio/nfsw-ai-studio-web
+  SERVICE: creatorslink
+  IMAGE: us-central1-docker.pkg.dev/mktia-ai-studio/nfsw-ai-studio/web
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write   # needed for Workload Identity Federation
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -29,12 +29,13 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build & push Docker image
+      - name: Build & push via Cloud Build
         run: |
           gcloud builds submit \
             --tag $IMAGE:${{ github.sha }} \
             --project $PROJECT_ID \
-            --file apps/web/Dockerfile \
+            --file Dockerfile \
+            --substitutions _DATABASE_URL=$(gcloud secrets versions access latest --secret=DATABASE_URL --project=$PROJECT_ID) \
             .
 
       - name: Deploy to Cloud Run
@@ -50,16 +51,19 @@ jobs:
             --max-instances 10 \
             --memory 1Gi \
             --cpu 1 \
+            --port 3000 \
+            --set-env-vars "NODE_ENV=production" \
+            --set-env-vars "NEXT_PUBLIC_APP_DOMAIN=creatorslink.org" \
+            --set-env-vars "NEXT_PUBLIC_APP_URL=https://creatorslink.org" \
+            --set-env-vars "BETTER_AUTH_URL=https://creatorslink.org" \
             --set-env-vars "GCP_PROJECT=mktia-ai-studio" \
             --set-env-vars "GCP_ZONE=us-central1-f" \
             --set-env-vars "GCS_BUCKET=mktia-ai-studio-outputs" \
             --set-env-vars "CLOUD_PROVIDER=gcp" \
-            --set-env-vars "BETTER_AUTH_URL=https://$SERVICE-${{ env.PROJECT_ID }}.run.app" \
-            --set-env-vars "NEXT_PUBLIC_APP_URL=https://$SERVICE-${{ env.PROJECT_ID }}.run.app" \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest" \
             --set-secrets "BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:latest" \
             --set-secrets "GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest" \
             --set-secrets "GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest" \
-            --set-secrets "DATABASE_URL=DATABASE_URL:latest" \
             --set-secrets "STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest" \
             --set-secrets "STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest" \
             --set-secrets "STRIPE_PRICE_SPARK=STRIPE_PRICE_SPARK:latest" \

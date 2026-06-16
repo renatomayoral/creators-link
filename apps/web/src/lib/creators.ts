@@ -35,6 +35,7 @@ export type CreatorListRow = {
   handle: string | null
   slug: string
   avatarUrl: string | null
+  customDomain: string | null
   status: 'live' | 'draft'
   clicks30d: number
   /** % change vs. the previous 30-day window */
@@ -65,6 +66,7 @@ export type CreatorDetail = {
   bio: string | null
   avatarUrl: string | null
   accentColor: string
+  customDomain: string | null
   status: 'live' | 'draft'
   totalClicks30d: number
   /** 14 daily click counts (oldest → today) */
