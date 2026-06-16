@@ -5,7 +5,28 @@ import {
   integer,
   boolean,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
+
+// ─── Platforms — available link platforms (admin-managed) ────────────────────
+
+export const platform = pgTable(
+  'platform',
+  {
+    id: text('id').primaryKey(),
+    /** Internal key used as the `platform` field in creator_link, e.g. "onlyfans" */
+    key: text('key').notNull(),
+    label: text('label').notNull(),
+    color: text('color').notNull(),
+    baseUrl: text('base_url').notNull(),
+    /** Sort position in lists */
+    sortOrder: integer('sort_order').$defaultFn(() => 0).notNull(),
+    active: boolean('active').$defaultFn(() => true).notNull(),
+    createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
+  },
+  (t) => [uniqueIndex('platform_key_idx').on(t.key)],
+)
 
 // ─── Creators — one link-in-bio page per content creator ─────────────────────
 // Owned by an authenticated user (the agency/manager account). The public

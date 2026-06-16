@@ -1,4 +1,4 @@
-import { creator, creatorLink, linkClick } from './creators'
+import { platform, creator, creatorLink, linkClick } from './creators'
 import { pgTable, text, timestamp, boolean, integer, date, uniqueIndex } from 'drizzle-orm/pg-core'
 
 // ─── Better Auth core tables ───────────────────────────────────────────────────
@@ -132,6 +132,7 @@ export const anonymousSession = pgTable('anonymous_session', {
 // ─── Schema export ────────────────────────────────────────────────────────────
 
 export const schema = {
+  platform,
   creator,
   creatorLink,
   linkClick,

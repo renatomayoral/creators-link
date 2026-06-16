@@ -408,6 +408,26 @@ CLOUD_PROVIDER=gcp  # ou runpod
 
 ---
 
+## Dependências — Convenções
+
+- Manter sempre os pacotes na versão mais recente (`pnpm update --recursive --latest`)
+- Após atualizar, rodar `tsc --noEmit` para checar breaking changes de tipos (ex: Stripe apiVersion)
+- Quando o Stripe SDK atualizar, ajustar `apiVersion` em `packages/payments/src/index.ts` para a versão exigida pelo tipo
+
+---
+
+## Banco de Dados — Convenções
+
+- **SEMPRE** usar `drizzle-kit generate` + `drizzle-kit migrate` para aplicar mudanças no schema
+- **NUNCA** usar `drizzle-kit push` — push bypassa o histórico de migrations e não é adequado para produção
+
+```bash
+cd packages/db && pnpm drizzle-kit generate
+cd packages/db && pnpm drizzle-kit migrate
+```
+
+---
+
 ## Convenções de Código
 
 - Sem tokens/chaves hardcoded — sempre variáveis de ambiente

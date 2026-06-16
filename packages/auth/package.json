@@ -13,13 +13,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@better-auth/stripe": "^1.2.7",
+    "@better-auth/stripe": "^1.6.19",
     "@repo/db": "workspace:*",
     "@repo/payments": "workspace:*",
-    "better-auth": "^1.2.7"
+    "better-auth": "^1.6.19"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.3",
     "typescript": "^6.0.3"
   }
 }
