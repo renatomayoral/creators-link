@@ -22,6 +22,7 @@ function isAppHost(hostname: string) {
 export async function proxy(req: NextRequest) {
   const hostname = req.headers.get('host') ?? ''
   const pathname = req.nextUrl.pathname
+  console.log("PROXY RUNNING for path:", pathname, "host:", hostname)
 
   // ── Root path handling ───────────────────────────────────────────────────
   if (pathname === '/') {

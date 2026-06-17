@@ -5,17 +5,12 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LocaleSwitcher } from '@/components/locale-switcher'
+import { useTranslations } from 'next-intl'
 
 const ACCENT = '#7C3AED'
 
-const NAV_LINKS = [
-  ['#recursos', 'Recursos'],
-  ['#como', 'Como funciona'],
-  ['#precos', 'Preços'],
-  ['#faq', 'Dúvidas'],
-] as const
-
 export function LandingNav() {
+  const t = useTranslations()
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -27,6 +22,13 @@ export function LandingNav() {
   const linkColor = isLight ? '#475569' : '#94a3b8'
   const signInColor = isLight ? '#334155' : '#cbd5e1'
   const logoSrc = isLight ? '/logo-wordmark-light.svg' : '/logo-wordmark-dark.svg'
+
+  const navLinks = [
+    ['#recursos', t('nav.features')],
+    ['#como', t('nav.howItWorks')],
+    ['#precos', t('nav.pricing')],
+    ['#faq', t('nav.faq')],
+  ] as const
 
   return (
     <nav
@@ -59,7 +61,7 @@ export function LandingNav() {
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-          {NAV_LINKS.map(([href, label]) => (
+          {navLinks.map(([href, label]) => (
             <a
               key={href}
               href={href}
@@ -90,7 +92,7 @@ export function LandingNav() {
               textDecoration: 'none',
             }}
           >
-            Entrar
+            {t('nav.signIn')}
           </Link>
           <Link
             href="/login"
@@ -108,7 +110,7 @@ export function LandingNav() {
               boxShadow: `0 8px 22px -8px ${ACCENT}`,
             }}
           >
-            Começar grátis
+            {t('nav.getStarted')}
           </Link>
         </div>
       </div>

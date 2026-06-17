@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Loader2, Wallet } from 'lucide-react'
 import { Button } from '@repo/ui/components/button'
 import { useToast } from '@repo/ui/hooks/use-toast'
+import { useTranslations } from 'next-intl'
 import { type CreatorDetail } from '@/lib/creators'
 import { type VipPlan } from '../_lib/vip-plans'
 import { VipPlanList } from './vip-plan-list'
@@ -13,6 +14,7 @@ import { NewVipPlan } from './new-vip-plan'
 type Props = { detail: CreatorDetail }
 
 export function Monetization({ detail }: Props) {
+  const t = useTranslations()
   const qc = useQueryClient()
   const { toast } = useToast()
   const [connecting, setConnecting] = useState(false)
@@ -39,10 +41,10 @@ export function Monetization({ detail }: Props) {
     try {
       const res = await fetch(`/api/creators/${detail.id}/connect`, { method: 'POST' })
       const body = (await res.json()) as { url?: string; error?: string }
-      if (!res.ok || !body.url) throw new Error(body.error ?? 'Erro ao conectar')
+      if (!res.ok || !body.url) throw new Error(body.error ?? t('creators.toastConnectError'))
       window.location.href = body.url
     } catch (e) {
-      toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' })
+      toast({ title: t('creators.toastConnectError'), description: (e as Error).message, variant: 'destructive' })
       setConnecting(false)
     }
   }
@@ -51,15 +53,15 @@ export function Monetization({ detail }: Props) {
     <div className="border-t px-5 py-4">
       <div className="mb-3 flex items-center gap-2">
         <Wallet className="text-muted-foreground h-4 w-4" />
-        <span className="text-[13px] font-semibold">Monetização · planos VIP</span>
+        <span className="text-[13px] font-semibold">{t('creators.monetizationTitle')}</span>
         {detail.stripeOnboarded ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
             <Check className="h-3 w-3" />
-            Pagamentos ativos
+            {t('creators.paymentsActive')}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400">
-            Não conectado
+            {t('creators.notConnected')}
           </span>
         )}
       </div>
@@ -67,8 +69,7 @@ export function Monetization({ detail }: Props) {
       {!detail.stripeOnboarded ? (
         <div className="flex flex-col gap-3 rounded-xl border border-dashed p-4">
           <p className="text-muted-foreground text-[13px]">
-            Conecte uma conta de recebimento para vender assinaturas VIP. O dinheiro cai direto na
-            conta da criadora; a plataforma retém apenas a taxa do plano.
+            {t('creators.connectDescription')}
           </p>
           <Button size="sm" onClick={connect} disabled={connecting} className="self-start">
             {connecting ? (
@@ -76,7 +77,7 @@ export function Monetization({ detail }: Props) {
             ) : (
               <Wallet className="mr-1.5 h-4 w-4" />
             )}
-            Conectar pagamentos
+            {t('creators.connectPaymentsButton')}
           </Button>
         </div>
       ) : (

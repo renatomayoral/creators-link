@@ -12,13 +12,13 @@ export type VipPlan = {
 // flash (Telegram), biweekly, monthly (OnlyFans/Privacy standard),
 // quarterly, semi-annual, annual, and lifetime (one-time).
 export const INTERVAL_OPTIONS = [
-  { value: '7', label: 'Semanal', sublabel: '7 dias' },
-  { value: '14', label: 'Quinzenal', sublabel: '14 dias' },
-  { value: '30', label: 'Mensal', sublabel: '30 dias' },
-  { value: '90', label: 'Trimestral', sublabel: '3 meses' },
-  { value: '180', label: 'Semestral', sublabel: '6 meses' },
-  { value: '365', label: 'Anual', sublabel: '12 meses' },
-  { value: '36500', label: 'Vitalício', sublabel: 'pagamento único' },
+  { value: '7', labelKey: 'creators.intervals.weekly', sublabelKey: 'creators.intervals.weeklySub' },
+  { value: '14', labelKey: 'creators.intervals.biweekly', sublabelKey: 'creators.intervals.biweeklySub' },
+  { value: '30', labelKey: 'creators.intervals.monthly', sublabelKey: 'creators.intervals.monthlySub' },
+  { value: '90', labelKey: 'creators.intervals.quarterly', sublabelKey: 'creators.intervals.quarterlySub' },
+  { value: '180', labelKey: 'creators.intervals.semiAnnual', sublabelKey: 'creators.intervals.semiAnnualSub' },
+  { value: '365', labelKey: 'creators.intervals.annual', sublabelKey: 'creators.intervals.annualSub' },
+  { value: '36500', labelKey: 'creators.intervals.lifetime', sublabelKey: 'creators.intervals.lifetimeSub' },
 ] as const
 
 export const CURRENCY_OPTIONS = [
@@ -27,14 +27,14 @@ export const CURRENCY_OPTIONS = [
   { value: 'eur', label: 'EUR (€)' },
 ] as const
 
-export function fmtPrice(amount: number, currency: string) {
-  return (amount / 100).toLocaleString('pt-BR', {
+export function fmtPrice(amount: number, currency: string, locale: string = 'pt-BR') {
+  return (amount / 100).toLocaleString(locale, {
     style: 'currency',
     currency: currency.toUpperCase(),
   })
 }
 
-export function intervalLabel(days: number) {
+export function intervalLabel(days: number, t: (key: string) => string) {
   const opt = INTERVAL_OPTIONS.find((o) => o.value === String(days))
-  return opt ? opt.label : `${days}d`
+  return opt ? t(opt.labelKey) : `${days}d`
 }

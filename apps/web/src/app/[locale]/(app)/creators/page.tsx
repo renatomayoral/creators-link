@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,8 @@ import { Tracking } from './_components/tracking'
 type Platform = { id: string; key: string; label: string; color: string; active: boolean }
 
 export default function CreatorsPage() {
+  const t = useTranslations()
+  const locale = useLocale()
   const qc = useQueryClient()
   const { toast } = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -59,12 +62,12 @@ export default function CreatorsPage() {
       const fd = new FormData()
       fd.append('file', file)
       const res = await fetch('/api/upload/avatar', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error('Falha no upload')
+      if (!res.ok) throw new Error(t('creators.toastUploadError'))
       const { url } = (await res.json()) as { url: string }
       setAvatarUrl(url)
     } catch (err) {
       toast({
-        title: 'Erro no upload',
+        title: t('creators.toastUploadError'),
         description: (err as Error).message,
         variant: 'destructive',
       })
@@ -88,7 +91,7 @@ export default function CreatorsPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name: newName, avatarUrl: avatarUrl ?? undefined }),
       })
-      if (!res.ok) throw new Error('Falha ao criar criadora')
+      if (!res.ok) throw new Error(t('creators.toastCreateError'))
       return res.json() as Promise<{ id: string; slug: string }>
     },
     onSuccess: ({ id }) => {
@@ -96,10 +99,10 @@ export default function CreatorsPage() {
       resetDialog()
       setSelectedId(id)
       void qc.invalidateQueries({ queryKey: ['creators'] })
-      toast({ title: 'Criadora criada' })
+      toast({ title: t('creators.toastCreateSuccess') })
     },
     onError: (e) =>
-      toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' }),
+      toast({ title: t('creators.toastCreateError'), description: (e as Error).message, variant: 'destructive' }),
   })
 
   return (
@@ -107,21 +110,21 @@ export default function CreatorsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Criadoras</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">{t('creators.title')}</h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
-            Gerencie as páginas de links e acompanhe o rastreio de cliques de cada criadora.
+            {t('creators.description')}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/creators/platforms">
+          <Link href={`/${locale}/creators/platforms`}>
             <Button variant="outline">
               <Settings2 className="mr-2 h-4 w-4" />
-              Plataformas
+              {t('creators.platformsButton')}
             </Button>
           </Link>
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova criadora
+            {t('creators.newCreatorButton')}
           </Button>
         </div>
       </div>
@@ -131,19 +134,19 @@ export default function CreatorsPage() {
       {/* Creators table */}
       <div className="bg-card rounded-2xl border">
         <div className="flex items-center justify-between border-b px-5 py-4">
-          <span className="text-[15px] font-bold">Suas criadoras</span>
+          <span className="text-[15px] font-bold">{t('creators.tableHeaderTitle')}</span>
           <span className="text-muted-foreground text-xs">
-            Clique numa criadora para ver o rastreio
+            {t('creators.tableHeaderSub')}
           </span>
         </div>
 
         <div className="text-muted-foreground grid grid-cols-[2.2fr_1.6fr_1fr_1.1fr_1.2fr_0.9fr_36px] gap-3.5 border-b px-5 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
-          <div>Criadora</div>
-          <div>Página</div>
-          <div>Cliques 30d</div>
-          <div>Tendência</div>
-          <div>Top link</div>
-          <div>Status</div>
+          <div>{t('creators.colCreator')}</div>
+          <div>{t('creators.colPage')}</div>
+          <div>{t('creators.colClicks30d')}</div>
+          <div>{t('creators.colTrend')}</div>
+          <div>{t('creators.colTopLink')}</div>
+          <div>{t('creators.colStatus')}</div>
           <div />
         </div>
 
@@ -156,7 +159,7 @@ export default function CreatorsPage() {
         ) : !creators?.length ? (
           <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
             <Users className="h-10 w-10 opacity-30" />
-            <p className="text-sm">Nenhuma criadora ainda. Crie a primeira página.</p>
+            <p className="text-sm">{t('creators.noCreators')}</p>
           </div>
         ) : (
           creators.map((c) => (
@@ -182,9 +185,9 @@ export default function CreatorsPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova criadora</DialogTitle>
+            <DialogTitle>{t('creators.dialogNewTitle')}</DialogTitle>
             <DialogDescription>
-              Crie uma página de links e comece a rastrear os cliques.
+              {t('creators.dialogNewDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -197,7 +200,7 @@ export default function CreatorsPage() {
                   ) : (
                     <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center gap-1">
                       <Camera className="h-6 w-6" />
-                      <span className="text-[10px] font-medium">Foto</span>
+                      <span className="text-[10px] font-medium">{t('creators.dialogAvatar')}</span>
                     </div>
                   )}
                   {uploadingAvatar && (
@@ -222,30 +225,30 @@ export default function CreatorsPage() {
                   className="text-muted-foreground hover:text-destructive flex items-center gap-1 text-xs"
                 >
                   <X className="h-3 w-3" />
-                  Remover foto
+                  {t('creators.dialogRemoveAvatar')}
                 </button>
               )}
             </div>
 
             <div>
-              <label className="text-sm font-medium">Nome da criadora</label>
+              <label className="text-sm font-medium">{t('creators.dialogNameLabel')}</label>
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Ex: Babi Barelli"
+                placeholder={t('creators.dialogNamePlaceholder')}
                 className="mt-2"
               />
             </div>
             <div className="bg-background text-muted-foreground rounded-lg border px-3 py-2.5 text-sm">
-              URL da página:{' '}
+              {t('creators.dialogUrlLabel')}{' '}
               <span className="text-primary font-mono">
-                /p/{newName ? slugify(newName) : 'nome-da-criadora'}
+                /p/{newName ? slugify(newName) : t('creators.dialogUrlPlaceholder')}
               </span>
             </div>
 
             {platforms.filter((p) => p.active).length > 0 && (
               <div>
-                <p className="text-sm font-medium">Plataformas a rastrear</p>
+                <p className="text-sm font-medium">{t('creators.dialogPlatformsLabel')}</p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {platforms
                     .filter((p) => p.active)
@@ -270,13 +273,13 @@ export default function CreatorsPage() {
                 resetDialog()
               }}
             >
-              Cancelar
+              {t('creators.dialogCancel')}
             </Button>
             <Button
               onClick={() => createCreator()}
               disabled={isPending || uploadingAvatar || newName.trim().length < 2}
             >
-              {isPending ? 'Criando…' : 'Criar página'}
+              {isPending ? t('creators.dialogCreating') : t('creators.dialogCreate')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button } from '@repo/ui/components/button'
 import { Input } from '@repo/ui/components/input'
 import { useToast } from '@repo/ui/hooks/use-toast'
@@ -46,6 +47,8 @@ const empty = (): Omit<Platform, 'id'> => ({
 })
 
 export default function PlatformsPage() {
+  const t = useTranslations()
+  const locale = useLocale()
   const qc = useQueryClient()
   const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -88,17 +91,17 @@ export default function PlatformsPage() {
       })
       if (!res.ok) {
         const body = await res.json()
-        throw new Error(typeof body.error === 'string' ? body.error : 'Erro ao salvar')
+        throw new Error(typeof body.error === 'string' ? body.error : t('platforms.toastError'))
       }
       return res.json()
     },
     onSuccess: () => {
       setDialogOpen(false)
       void qc.invalidateQueries({ queryKey: ['platforms'] })
-      toast({ title: editing ? 'Plataforma atualizada' : 'Plataforma criada' })
+      toast({ title: editing ? t('platforms.toastUpdated') : t('platforms.toastSaved') })
     },
     onError: (e) =>
-      toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' }),
+      toast({ title: t('platforms.toastError'), description: (e as Error).message, variant: 'destructive' }),
   })
 
   const { mutate: toggleActive } = useMutation({
@@ -109,7 +112,7 @@ export default function PlatformsPage() {
         body: JSON.stringify({ active: !p.active }),
       }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['platforms'] }),
-    onError: () => toast({ title: 'Erro ao alterar status', variant: 'destructive' }),
+    onError: () => toast({ title: t('platforms.toastStatusError'), variant: 'destructive' }),
   })
 
   const { mutate: deletePlatform } = useMutation({
@@ -117,9 +120,9 @@ export default function PlatformsPage() {
     onSuccess: () => {
       setDeleteTarget(null)
       void qc.invalidateQueries({ queryKey: ['platforms'] })
-      toast({ title: 'Plataforma removida' })
+      toast({ title: t('platforms.toastRemoved') })
     },
-    onError: () => toast({ title: 'Erro ao remover', variant: 'destructive' }),
+    onError: () => toast({ title: t('platforms.toastRemoveError'), variant: 'destructive' }),
   })
 
   const isFormValid =
@@ -134,20 +137,20 @@ export default function PlatformsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link
-            href="/creators"
+            href={`/${locale}/creators`}
             className="text-muted-foreground hover:text-foreground mb-2 inline-flex items-center gap-1.5 text-sm"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar para Criadoras
+            {t('platforms.backToCreators')}
           </Link>
-          <h1 className="text-2xl font-extrabold tracking-tight">Plataformas</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">{t('platforms.title')}</h1>
           <p className="text-muted-foreground mt-1.5 text-sm">
-            Gerencie as plataformas disponíveis para rastreio de links.
+            {t('platforms.description')}
           </p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          Nova plataforma
+          {t('platforms.newPlatform')}
         </Button>
       </div>
 
@@ -155,11 +158,11 @@ export default function PlatformsPage() {
       <div className="bg-card rounded-2xl border">
         <div className="text-muted-foreground grid grid-cols-[2rem_1fr_1fr_1.5fr_5rem_5rem_5rem] items-center gap-3 border-b px-5 py-3 text-[11px] font-semibold tracking-wider uppercase">
           <div />
-          <div>Chave</div>
-          <div>Label</div>
-          <div>URL base</div>
-          <div>Ordem</div>
-          <div>Status</div>
+          <div>{t('platforms.colKey')}</div>
+          <div>{t('platforms.colLabel')}</div>
+          <div>{t('platforms.colBaseUrl')}</div>
+          <div>{t('platforms.colOrder')}</div>
+          <div>{t('platforms.colStatus')}</div>
           <div />
         </div>
 
@@ -171,9 +174,9 @@ export default function PlatformsPage() {
           </div>
         ) : platforms.length === 0 ? (
           <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
-            <p className="text-sm">Nenhuma plataforma cadastrada.</p>
+            <p className="text-sm">{t('platforms.noPlatforms')}</p>
             <Button variant="outline" size="sm" onClick={openCreate}>
-              Criar primeira plataforma
+              {t('platforms.createFirst')}
             </Button>
           </div>
         ) : (
@@ -205,12 +208,12 @@ export default function PlatformsPage() {
                 {p.active ? (
                   <>
                     <ToggleRight className="text-primary h-4 w-4" />
-                    <span className="text-primary">Ativo</span>
+                    <span className="text-primary">{t('platforms.statusActive')}</span>
                   </>
                 ) : (
                   <>
                     <ToggleLeft className="text-muted-foreground h-4 w-4" />
-                    <span className="text-muted-foreground">Inativo</span>
+                    <span className="text-muted-foreground">{t('platforms.statusInactive')}</span>
                   </>
                 )}
               </button>
@@ -239,16 +242,16 @@ export default function PlatformsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Editar plataforma' : 'Nova plataforma'}</DialogTitle>
+            <DialogTitle>{editing ? t('platforms.dialogEditTitle') : t('platforms.dialogNewTitle')}</DialogTitle>
             <DialogDescription>
               {editing
-                ? 'Atualize os dados da plataforma.'
-                : 'Preencha os dados para criar uma nova plataforma de rastreio.'}
+                ? t('platforms.dialogEditDesc')
+                : t('platforms.dialogNewDesc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <Field label="Chave (key)">
+            <Field label={t('platforms.fieldKey')}>
               <Input
                 value={form.key}
                 onChange={(e) =>
@@ -258,11 +261,11 @@ export default function PlatformsPage() {
                 disabled={!!editing}
               />
               <p className="text-muted-foreground mt-1 text-xs">
-                Identificador único. Não pode ser alterado depois de criado.
+                {t('platforms.fieldKeyHelp')}
               </p>
             </Field>
 
-            <Field label="Label">
+            <Field label={t('platforms.fieldLabel')}>
               <Input
                 value={form.label}
                 onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
@@ -271,7 +274,7 @@ export default function PlatformsPage() {
             </Field>
 
             <div className="grid grid-cols-[1fr_auto] gap-3">
-              <Field label="Cor">
+              <Field label={t('platforms.fieldColor')}>
                 <Input
                   value={form.color}
                   onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
@@ -288,18 +291,18 @@ export default function PlatformsPage() {
               </div>
             </div>
 
-            <Field label="URL base">
+            <Field label={t('platforms.fieldBaseUrl')}>
               <Input
                 value={form.baseUrl}
                 onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
                 placeholder="https://onlyfans.com/"
               />
               <p className="text-muted-foreground mt-1 text-xs">
-                Prefixo usado ao gerar o link (ex: https://onlyfans.com/usuario).
+                {t('platforms.fieldBaseUrlHelp')}
               </p>
             </Field>
 
-            <Field label="Ordem">
+            <Field label={t('platforms.fieldOrder')}>
               <Input
                 type="number"
                 min={0}
@@ -311,10 +314,10 @@ export default function PlatformsPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
+              {t('platforms.cancel')}
             </Button>
             <Button onClick={() => save()} disabled={isSaving || !isFormValid}>
-              {isSaving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Criar plataforma'}
+              {isSaving ? t('platforms.saving') : editing ? t('platforms.saveChanges') : t('platforms.createPlatform')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -324,20 +327,18 @@ export default function PlatformsPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover plataforma?</AlertDialogTitle>
+            <AlertDialogTitle>{t('platforms.alertDeleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              A plataforma <strong>{deleteTarget?.label}</strong> será removida permanentemente.
-              Links de criadoras que usam essa plataforma não serão afetados, mas a plataforma não
-              estará mais disponível para novas criadoras.
+              {t('platforms.alertDeleteDesc', { label: deleteTarget?.label ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('platforms.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteTarget && deletePlatform(deleteTarget.id)}
             >
-              Remover
+              {t('platforms.remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

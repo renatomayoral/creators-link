@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { LandingNav } from './_components/landing-nav'
+import { useTranslations, useLocale } from 'next-intl'
 
 const ACCENT = '#ec4899'
 
@@ -66,40 +67,13 @@ function IconPlay() {
   )
 }
 
-// ─── FAQ data ─────────────────────────────────────────────────────────────────
-const FAQS = [
-  {
-    q: 'As páginas têm verificação de idade?',
-    a: 'Sim. As páginas já vêm com selo 18+, prévias com cadeado e um card de destaque para a assinatura — feitas para criadoras de conteúdo premium, respeitando as regras de cada plataforma.',
-  },
-  {
-    q: 'Como o rastreio de cliques funciona?',
-    a: 'Cada botão da página passa por um link de redirecionamento que registra o clique (criadora + plataforma) e, em seguida, leva a pessoa ao destino real. É instantâneo e invisível para quem clica.',
-  },
-  {
-    q: 'Como funcionam as vendas no Telegram?',
-    a: 'Você conecta seu bot, cria planos VIP (mensal, trimestral, anual) e a plataforma cuida do resto: o assinante paga por Pix ou cartão, é adicionado ao seu canal ou grupo automaticamente e removido quando o plano expira — tudo sem você sair do painel.',
-  },
-  {
-    q: 'Como recebo os pagamentos?',
-    a: 'O recebimento é integrado: aceitamos Pix e cartão e o valor das assinaturas cai direto pra você, sem precisar de outra ferramenta de cobrança. Você acompanha assinantes e receita no mesmo painel dos cliques.',
-  },
-  {
-    q: 'Preciso saber programar?',
-    a: 'Não. Você cria uma criadora pelo nome, ajusta os links e a cor de destaque pelo painel e publica. Nenhuma linha de código.',
-  },
-  {
-    q: 'Posso usar meu próprio domínio?',
-    a: 'Sim, a partir do plano Pro. Aponte seu domínio e as páginas ficam em seudominio.com/p/nome, com a sua marca e sem logo de terceiros.',
-  },
-  {
-    q: 'Dá para gerenciar várias criadoras?',
-    a: 'Sim. Uma única conta gerencia várias páginas, cada uma com seu rastreio. O plano Agência libera criadoras ilimitadas e acesso para o time.',
-  },
-]
+// ─── FAQ data is loaded via t() inside the component ─────────────────────────
+const FAQ_KEYS = ['1', '2', '3', '4', '5', '6', '7'] as const
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const t = useTranslations()
+  const locale = useLocale()
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -188,7 +162,7 @@ export default function LandingPage() {
                   boxShadow: '0 0 8px #34d399',
                 }}
               />
-              Link na bio + analytics para criadoras
+              {t('hero.badge')}
             </div>
             <h1
               style={{
@@ -199,7 +173,7 @@ export default function LandingPage() {
                 letterSpacing: '-.03em',
               }}
             >
-              Sua bio vira{' '}
+              {t('hero.titlePart1')}{' '}
               <span
                 style={{
                   background: `linear-gradient(120deg,${ACCENT},#a78bfa)`,
@@ -208,10 +182,10 @@ export default function LandingPage() {
                   color: 'transparent',
                 }}
               >
-                venda
+                {t('hero.titleSales')}
               </span>
               .<br />
-              Cada clique vira{' '}
+              {t('hero.titlePart2')}{' '}
               <span
                 style={{
                   background: `linear-gradient(120deg,#60a5fa,${ACCENT})`,
@@ -220,7 +194,7 @@ export default function LandingPage() {
                   color: 'transparent',
                 }}
               >
-                dado
+                {t('hero.titleData')}
               </span>
               .
             </h1>
@@ -230,12 +204,10 @@ export default function LandingPage() {
                 maxWidth: 480,
                 fontSize: 17,
                 lineHeight: 1.65,
-                color: '#a3b1c6',
+                color: isLight ? '#475569' : '#a3b1c6',
               }}
             >
-              Crie páginas de links lindas para cada criadora e acompanhe, por plataforma,
-              exatamente de onde vêm os cliques — OnlyFans, Privacy, Instagram e mais, num painel
-              só.
+              {t('hero.description')}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 13, marginTop: 30 }}>
               <Link
@@ -254,7 +226,7 @@ export default function LandingPage() {
                   boxShadow: `0 14px 30px -10px ${ACCENT}`,
                 }}
               >
-                Começar grátis <IconArrow />
+                {t('hero.ctaMain')} <IconArrow />
               </Link>
               <a
                 href="#como"
@@ -272,7 +244,7 @@ export default function LandingPage() {
                   textDecoration: 'none',
                 }}
               >
-                <IconPlay /> Ver demo
+                <IconPlay /> {t('hero.ctaDemo')}
               </a>
             </div>
             <div
@@ -285,9 +257,9 @@ export default function LandingPage() {
                 color: lightMutedTextColor,
               }}
             >
-              {['Publica em 60s', 'Sem cartão', '100% no Lighthouse'].map((t) => (
-                <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <IconCheck /> {t}
+              {[t('hero.trustPublish'), t('hero.trustNoCard'), t('hero.trustLighthouse')].map((badgeText) => (
+                <span key={badgeText} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <IconCheck /> {badgeText}
                 </span>
               ))}
             </div>
@@ -543,10 +515,10 @@ export default function LandingPage() {
           }}
         >
           {[
-            { val: '45 mil+', label: 'cliques rastreados' },
-            { val: '5', label: 'plataformas integradas' },
-            { val: '60s', label: 'para publicar uma página' },
-            { val: '100%', label: 'score no Lighthouse' },
+            { val: locale === 'en' ? '45k+' : '45 mil+', label: t('stats.clicks') },
+            { val: '5', label: t('stats.platforms') },
+            { val: '60s', label: t('stats.publish') },
+            { val: '100%', label: t('stats.lighthouse') },
           ].map(({ val, label }) => (
             <div key={label} style={{ flex: '1 1 160px' }}>
               <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-.02em' }}>{val}</div>
@@ -571,7 +543,7 @@ export default function LandingPage() {
               color: ACCENT,
             }}
           >
-            Recursos
+            {t('features.title')}
           </div>
           <h2
             style={{
@@ -581,11 +553,10 @@ export default function LandingPage() {
               letterSpacing: '-.02em',
             }}
           >
-            Tudo que uma criadora precisa numa bio só
+            {t('features.headline')}
           </h2>
           <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.6, color: mutedTextColor }}>
-            Página feita pra converter e rastreio que prova o que funciona — sem planilha, sem
-            achismo.
+            {t('features.sub')}
           </p>
         </div>
         <div
@@ -615,8 +586,8 @@ export default function LandingPage() {
               ),
               bg: 'rgba(236,72,153,.12)',
               border: 'rgba(236,72,153,.25)',
-              title: 'Páginas que convertem',
-              desc: 'Dark com neon, foto, verificado, card de destaque e prévias. Mobile-first e carrega num piscar.',
+              title: t('features.card1Title'),
+              desc: t('features.card1Desc'),
             },
             {
               icon: (
@@ -636,8 +607,8 @@ export default function LandingPage() {
               ),
               bg: 'rgba(59,130,246,.12)',
               border: 'rgba(59,130,246,.25)',
-              title: 'Rastreio por plataforma',
-              desc: 'Cada botão passa por um redirect que conta o clique. Veja OnlyFans, Privacy, Instagram e mais, lado a lado.',
+              title: t('features.card2Title'),
+              desc: t('features.card2Desc'),
             },
             {
               icon: (
@@ -658,8 +629,8 @@ export default function LandingPage() {
               ),
               bg: 'rgba(124,58,237,.12)',
               border: 'rgba(124,58,237,.25)',
-              title: 'Multi-criadora',
-              desc: 'Gerencie dezenas de criadoras numa conta. Sparkline, top link e status de cada página num relance.',
+              title: t('features.card3Title'),
+              desc: t('features.card3Desc'),
             },
             {
               icon: (
@@ -669,8 +640,8 @@ export default function LandingPage() {
               ),
               bg: 'rgba(52,211,153,.12)',
               border: 'rgba(52,211,153,.25)',
-              title: 'Rápido e otimizado',
-              desc: 'Next.js, next/image e SEO no capricho. 100% no Lighthouse e pronto pra escalar com seu tráfego.',
+              title: t('features.card4Title'),
+              desc: t('features.card4Desc'),
             },
             {
               icon: (
@@ -690,8 +661,8 @@ export default function LandingPage() {
               ),
               bg: 'rgba(236,72,153,.12)',
               border: 'rgba(236,72,153,.25)',
-              title: 'Sua marca, seu domínio',
-              desc: 'Cor de destaque por criadora, bio e domínio próprio. A página é sua — sem logo de terceiros.',
+              title: t('features.card5Title'),
+              desc: t('features.card5Desc'),
             },
             {
               icon: (
@@ -711,8 +682,8 @@ export default function LandingPage() {
               ),
               bg: 'rgba(59,130,246,.12)',
               border: 'rgba(59,130,246,.25)',
-              title: 'Pronto para conteúdo premium',
-              desc: 'Selo de verificação de idade, prévias com cadeado e card de destaque para a assinatura. Tudo configurado para converter.',
+              title: t('features.card6Title'),
+              desc: t('features.card6Desc'),
             },
           ].map(({ icon, bg, border, title, desc }) => (
             <div
@@ -760,7 +731,7 @@ export default function LandingPage() {
               color: ACCENT,
             }}
           >
-            Como funciona
+            {t('howItWorks.title')}
           </div>
           <h2
             style={{
@@ -770,7 +741,7 @@ export default function LandingPage() {
               letterSpacing: '-.02em',
             }}
           >
-            Da ideia ao primeiro clique em 3 passos
+            {t('howItWorks.headline')}
           </h2>
         </div>
         <div
@@ -784,26 +755,18 @@ export default function LandingPage() {
           {[
             {
               n: '01',
-              title: 'Crie por nome',
-              desc: (
-                <>
-                  Digite o nome da criadora. Geramos o link{' '}
-                  <code style={{ fontFamily: 'ui-monospace,monospace', color: isLight ? '#1e293b' : '#cbd5e1' }}>
-                    /p/nome
-                  </code>{' '}
-                  e os botões das plataformas automaticamente.
-                </>
-              ),
+              title: t('howItWorks.step1Title'),
+              desc: t('howItWorks.step1Desc'),
             },
             {
               n: '02',
-              title: 'Personalize e publique',
-              desc: 'Ajuste os links, a cor de destaque, a foto e a bio. Publique e a página fica no ar na hora.',
+              title: t('howItWorks.step2Title'),
+              desc: t('howItWorks.step2Desc'),
             },
             {
               n: '03',
-              title: 'Acompanhe os cliques',
-              desc: 'Compartilhe o link na bio. Veja cliques por dia e por plataforma, em tempo real, no painel.',
+              title: t('howItWorks.step3Title'),
+              desc: t('howItWorks.step3Desc'),
             },
           ].map(({ n, title, desc }) => (
             <div
@@ -851,7 +814,7 @@ export default function LandingPage() {
                 color: '#60a5fa',
               }}
             >
-              Painel de rastreio
+              {t('showcase.title')}
             </div>
             <h2
               style={{
@@ -859,44 +822,25 @@ export default function LandingPage() {
                 fontSize: 'clamp(26px,3.2vw,36px)',
                 fontWeight: 800,
                 letterSpacing: '-.02em',
+                color: isLight ? '#0f172a' : '#fff',
               }}
             >
-              Saiba qual plataforma realmente traz dinheiro
+              {t('showcase.headline')}
             </h2>
             <p style={{ margin: '16px 0 0', fontSize: 16, lineHeight: 1.65, color: mutedTextColor }}>
-              Pare de adivinhar. Cada clique é atribuído a uma criadora e a uma plataforma, então
-              você sabe onde investir tempo e tráfego.
+              {t('showcase.description')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13, marginTop: 24 }}>
               {[
-                {
-                  text: (
-                    <>
-                      <strong style={{ color: textColor }}>Cliques por plataforma</strong> — ranking
-                      com % e barras comparativas.
-                    </>
-                  ),
-                },
-                {
-                  text: (
-                    <>
-                      <strong style={{ color: textColor }}>Tendência diária</strong> — 14 dias de série
-                      e variação vs. período anterior.
-                    </>
-                  ),
-                },
-                {
-                  text: (
-                    <>
-                      <strong style={{ color: textColor }}>Visão por criadora</strong> — compare
-                      páginas e descubra o top link de cada uma.
-                    </>
-                  ),
-                },
-              ].map(({ text }, i) => (
+                { title: t('showcase.feat1Title'), desc: t('showcase.feat1Desc') },
+                { title: t('showcase.feat2Title'), desc: t('showcase.feat2Desc') },
+                { title: t('showcase.feat3Title'), desc: t('showcase.feat3Desc') },
+              ].map(({ title, desc }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
                   <IconCheck />
-                  <span style={{ fontSize: 14.5, color: mutedTextColor, lineHeight: 1.55 }}>{text}</span>
+                  <span style={{ fontSize: 14.5, color: mutedTextColor, lineHeight: 1.55 }}>
+                    <strong style={{ color: textColor }}>{title}</strong> — {desc}
+                  </span>
                 </div>
               ))}
             </div>
@@ -918,10 +862,10 @@ export default function LandingPage() {
                   marginBottom: 16,
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#cbd5e1' }}>
-                  Cliques por plataforma · 30d
+                <span style={{ fontSize: 13, fontWeight: 700, color: isLight ? '#475569' : '#cbd5e1' }}>
+                  {t('showcase.widgetTitle')}
                 </span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>35.300 total</span>
+                <span style={{ fontSize: 12, color: '#64748b' }}>35.300 {t('showcase.widgetTotal')}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
@@ -1027,7 +971,7 @@ export default function LandingPage() {
                     CreatorsLink Bot
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.8)' }}>
-                    bot · gerencia seu VIP
+                    {t('telegram.botDescription')}
                   </div>
                 </div>
                 <span
@@ -1042,7 +986,7 @@ export default function LandingPage() {
                   <span
                     style={{ width: 6, height: 6, borderRadius: '50%', background: '#6ee7b7' }}
                   />
-                  online
+                  {t('telegram.online')}
                 </span>
               </div>
               <div
@@ -1065,8 +1009,7 @@ export default function LandingPage() {
                   }}
                 >
                   <div style={{ fontSize: 13, lineHeight: 1.5, color: isLight ? '#1f2937' : '#e8eef4' }}>
-                    Olá! 💎 Escolha seu plano para entrar no{' '}
-                    <strong style={{ color: isLight ? '#229ed9' : '#5cc6f0' }}>Canal VIP da Babi</strong>:
+                    {t('telegram.botWelcome')}
                   </div>
                 </div>
                 <div
@@ -1079,9 +1022,9 @@ export default function LandingPage() {
                   }}
                 >
                   {[
-                    { label: '💎 VIP Mensal', price: 'R$29,90', featured: false },
-                    { label: '🔥 VIP Trimestral', price: 'R$74,90', featured: false },
-                    { label: '⭐ VIP Anual', price: 'R$249', featured: true },
+                    { label: t('telegram.planMonthly'), price: locale === 'pt-BR' ? 'R$29,90' : '$5.90', featured: false },
+                    { label: t('telegram.planQuarterly'), price: locale === 'pt-BR' ? 'R$74,90' : '$14.90', featured: false },
+                    { label: t('telegram.planAnnual'), price: locale === 'pt-BR' ? 'R$249' : '$49.90', featured: true },
                   ].map(({ label, price, featured }) => (
                     <div
                       key={label}
@@ -1127,7 +1070,7 @@ export default function LandingPage() {
                     boxShadow: isLight ? '0 1px 2px rgba(0,0,0,0.05)' : undefined,
                   }}
                 >
-                  <div style={{ fontSize: 13, color: '#fff' }}>Quero o VIP Anual ⭐</div>
+                  <div style={{ fontSize: 13, color: '#fff' }}>{t('telegram.userSelection')}</div>
                 </div>
                 <div
                   style={{
@@ -1161,11 +1104,10 @@ export default function LandingPage() {
                     >
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
-                    Pagamento confirmado via Pix
+                    {t('telegram.paymentConfirmed')}
                   </div>
                   <div style={{ fontSize: 12.5, lineHeight: 1.5, color: isLight ? '#374151' : '#aebfcf', marginTop: 6 }}>
-                    Acesso ao <strong style={{ color: isLight ? '#0f172a' : '#e8eef4' }}>Canal VIP</strong> liberado
-                    automaticamente. Bem-vinda! 🎉
+                    {t('telegram.accessReleased')}
                   </div>
                 </div>
               </div>
@@ -1191,7 +1133,7 @@ export default function LandingPage() {
               <svg viewBox="0 0 24 24" width="14" height="14" fill={isLight ? '#0284c7' : '#5cc6f0'}>
                 <path d="M21.9 4.3l-3.1 14.6c-.2 1-.9 1.3-1.7.8l-4.6-3.4-2.2 2.1c-.3.3-.5.5-.9.5l.3-4.5L18 6.2c.4-.3-.1-.5-.6-.2L7.2 12.6l-4.4-1.4c-1-.3-1-.9.2-1.4l17.2-6.6c.8-.3 1.5.2 1.2 1.4z" />
               </svg>
-              NOVO · TELEGRAM
+              {t('telegram.badge')}
             </div>
             <h2
               style={{
@@ -1202,21 +1144,30 @@ export default function LandingPage() {
                 color: isLight ? '#0f172a' : '#fff',
               }}
             >
-              Venda planos no Telegram{' '}
-              <span
-                style={{
-                  background: 'linear-gradient(120deg,#34a9e8,#5cc6f0)',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent',
-                }}
-              >
-                sem sair da plataforma
-              </span>
+              {(() => {
+                const headline = t('telegram.headline');
+                const splitIndex = headline.toLowerCase().indexOf(locale === 'en' ? 'without' : (locale === 'es' ? 'sin' : 'sem'));
+                const part1 = splitIndex !== -1 ? headline.slice(0, splitIndex) : headline;
+                const part2 = splitIndex !== -1 ? headline.slice(splitIndex) : '';
+                return (
+                  <>
+                    {part1}
+                    <span
+                      style={{
+                        background: 'linear-gradient(120deg,#34a9e8,#5cc6f0)',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                      }}
+                    >
+                      {part2}
+                    </span>
+                  </>
+                );
+              })()}
             </h2>
             <p style={{ margin: '16px 0 0', fontSize: 16, lineHeight: 1.65, color: isLight ? '#475569' : '#a3b1c6' }}>
-              Crie planos VIP, conecte seu bot e deixe o resto com a gente: o assinante paga, entra
-              no canal e você recebe — tudo integrado, sem ferramenta de fora.
+              {t('telegram.description')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 26 }}>
               {[
@@ -1240,8 +1191,7 @@ export default function LandingPage() {
                   ),
                   text: (
                     <>
-                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Planos recorrentes</strong> — mensal,
-                      trimestral e anual, criados em minutos pelo painel.
+                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>{t('telegram.feature1Title')}</strong> — {t('telegram.feature1Desc')}
                     </>
                   ),
                 },
@@ -1265,8 +1215,7 @@ export default function LandingPage() {
                   ),
                   text: (
                     <>
-                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Recebimento integrado</strong> — Pix e
-                      cartão direto na plataforma; o dinheiro cai pra você, sem intermediário.
+                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>{t('telegram.feature2Title')}</strong> — {t('telegram.feature2Desc')}
                     </>
                   ),
                 },
@@ -1289,8 +1238,7 @@ export default function LandingPage() {
                   ),
                   text: (
                     <>
-                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Acesso automático</strong> — assinou, entra
-                      no canal; expirou, sai. Liberação e remoção no automático.
+                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>{t('telegram.feature3Title')}</strong> — {t('telegram.feature3Desc')}
                     </>
                   ),
                 },
@@ -1314,8 +1262,7 @@ export default function LandingPage() {
                   ),
                   text: (
                     <>
-                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Tudo num painel</strong> — assinantes,
-                      receita e cliques da bio juntos, no seu domínio próprio.
+                      <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>{t('telegram.feature4Title')}</strong> — {t('telegram.feature4Desc')}
                     </>
                   ),
                 },
@@ -1361,7 +1308,7 @@ export default function LandingPage() {
                 boxShadow: isLight ? '0 10px 20px -8px rgba(34,158,217,.4)' : '0 14px 30px -10px rgba(34,158,217,.65)',
               }}
             >
-              Ativar vendas no Telegram <IconArrow />
+              {t('telegram.button')} <IconArrow />
             </a>
           </div>
         </div>
@@ -1379,7 +1326,7 @@ export default function LandingPage() {
               color: ACCENT,
             }}
           >
-            Preços
+            {t('pricing.title')}
           </div>
           <h2
             style={{
@@ -1387,12 +1334,13 @@ export default function LandingPage() {
               fontSize: 'clamp(28px,3.6vw,40px)',
               fontWeight: 800,
               letterSpacing: '-.02em',
+              color: isLight ? '#0f172a' : '#fff',
             }}
           >
-            Comece grátis. Escale quando crescer.
+            {t('pricing.headline')}
           </h2>
-          <p style={{ margin: '14px 0 0', fontSize: 16, color: '#a3b1c6' }}>
-            Sem cartão para começar. Cancele quando quiser.
+          <p style={{ margin: '14px 0 0', fontSize: 16, color: isLight ? '#475569' : '#a3b1c6' }}>
+            {t('pricing.sub')}
           </p>
         </div>
         <div
@@ -1414,16 +1362,16 @@ export default function LandingPage() {
               boxShadow: shadowStyle,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Free (O Funil de Atração)</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>Free</div>
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>$0</span>
-              <span style={{ fontSize: 14, color: lightMutedTextColor }}>/mês</span>
+              <span style={{ fontSize: 14, color: lightMutedTextColor }}>{locale === 'en' ? '/month' : (locale === 'es' ? '/mes' : '/mês')}</span>
             </div>
             <div style={{ fontSize: 12.5, color: mutedTextColor, marginTop: 4, fontWeight: 600 }}>
-              Taxas: 9,9% + $0,30 por transação
+              {locale === 'en' ? 'Fees: 9.9% + $0.30 per transaction' : (locale === 'es' ? 'Tasas: 9.9% + $0.30 por transacción' : 'Taxas: 9,9% + $0,30 por transação')}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
-              Criadores iniciantes, quem está testando o bot do Telegram ou migrando de plataformas gratuitas (AllMyLinks).
+              {t('pricing.starterDesc')}
             </p>
             <Link
               href="/login"
@@ -1441,7 +1389,7 @@ export default function LandingPage() {
                 textDecoration: 'none',
               }}
             >
-              Criar conta
+              {t('pricing.ctaFree')}
             </Link>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
@@ -1454,9 +1402,9 @@ export default function LandingPage() {
               }}
             >
               {[
-                'Taxas: 9,9% + $0,30 por transação',
-                'Telegram Bot de Vendas',
-                'Marca CreatorsLink no link-in-bio e no bot',
+                locale === 'en' ? 'Fees: 9.9% + $0.30 per transaction' : (locale === 'es' ? 'Tasas: 9.9% + $0.30 por transacción' : 'Taxas: 9,9% + $0,30 por transação'),
+                locale === 'en' ? 'Telegram Sales Bot' : (locale === 'es' ? 'Bot de ventas de Telegram' : 'Telegram Bot de Vendas'),
+                locale === 'en' ? 'CreatorsLink branding on link-in-bio and bot' : (locale === 'es' ? 'Marca CreatorsLink en link-in-bio y bot' : 'Marca CreatorsLink no link-in-bio e no bot'),
               ].map((f) => (
                 <span key={f} style={{ display: 'flex', gap: 9 }}>
                   <IconCheck />
@@ -1493,18 +1441,18 @@ export default function LandingPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              DOCE PEDAÇO DO MEIO
+              {locale === 'en' ? 'SWEET SPOT' : (locale === 'es' ? 'PUNTO IDEAL' : 'DOCE PEDAÇO DO MEIO')}
             </span>
             <div style={{ fontSize: 15, fontWeight: 700 }}>Creator / Growth</div>
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>$19</span>
-              <span style={{ fontSize: 14, color: lightMutedTextColor }}>/mês</span>
+              <span style={{ fontSize: 14, color: lightMutedTextColor }}>{locale === 'en' ? '/month' : (locale === 'es' ? '/mes' : '/mês')}</span>
             </div>
             <div style={{ fontSize: 12.5, color: ACCENT, marginTop: 4, fontWeight: 600 }}>
-              Taxas: 6,9% + $0,30 por transação
+              {locale === 'en' ? 'Fees: 6.9% + $0.30 per transaction' : (locale === 'es' ? 'Tasas: 6.9% + $0.30 por transacción' : 'Taxas: 6,9% + $0,30 por transação')}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
-              O criador que já vende toda semana, quer tirar a sua marca do perfil dele, mas ainda não fatura milhares de dólares para justificar o plano Pro.
+              {t('pricing.proDesc')}
             </p>
             <Link
               href="/login"
@@ -1522,7 +1470,7 @@ export default function LandingPage() {
                 boxShadow: `0 12px 26px -10px ${ACCENT}`,
               }}
             >
-              Assinar Creator / Growth
+              {t('pricing.ctaPro')}
             </Link>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
@@ -1535,11 +1483,11 @@ export default function LandingPage() {
               }}
             >
               {[
-                'Taxas: 6,9% + $0,30 por transação',
-                'Sem marca da CreatorsLink no perfil',
-                'Domínio próprio personalizado',
-                'Telegram Bot ilimitado',
-                'Fixo fácil de cobrar e alta margem',
+                locale === 'en' ? 'Fees: 6.9% + $0.30 per transaction' : (locale === 'es' ? 'Tasas: 6.9% + $0.30 por transacción' : 'Taxas: 6,9% + $0,30 por transação'),
+                locale === 'en' ? 'No CreatorsLink branding on profile' : (locale === 'es' ? 'Sin marca de CreatorsLink en perfil' : 'Sem marca da CreatorsLink no perfil'),
+                locale === 'en' ? 'Custom personal domain' : (locale === 'es' ? 'Dominio propio personalizado' : 'Domínio próprio personalizado'),
+                locale === 'en' ? 'Unlimited Telegram Bot' : (locale === 'es' ? 'Bot de Telegram ilimitado' : 'Telegram Bot ilimitado'),
+                locale === 'en' ? 'Easy fixed billing and high margin' : (locale === 'es' ? 'Fijo fácil de cobrar y alto margen' : 'Fixo fácil de cobrar e alta margem'),
               ].map((f) => (
                 <span key={f} style={{ display: 'flex', gap: 9 }}>
                   <IconCheck color={ACCENT} />
@@ -1559,16 +1507,16 @@ export default function LandingPage() {
               boxShadow: shadowStyle,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Pro / Scale (Para os Tubarões)</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>Pro / Scale</div>
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>$79</span>
-              <span style={{ fontSize: 14, color: lightMutedTextColor }}>/mês</span>
+              <span style={{ fontSize: 14, color: lightMutedTextColor }}>{locale === 'en' ? '/month' : (locale === 'es' ? '/mes' : '/mês')}</span>
             </div>
             <div style={{ fontSize: 12.5, color: mutedTextColor, marginTop: 4, fontWeight: 600 }}>
-              Taxas: 3,9% + $0,30 por transação
+              {locale === 'en' ? 'Fees: 3.9% + $0.30 per transaction' : (locale === 'es' ? 'Tasas: 3.9% + $0.30 por transacción' : 'Taxas: 3,9% + $0,30 por transação')}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
-              Grandes produtores de conteúdo, agências e criadores high-ticket que movimentam mais de $3.000/mês. Repasse quase puro da Stripe.
+              {t('pricing.agencyDesc')}
             </p>
             <a
               href="mailto:contato@creatorslink.org"
@@ -1586,7 +1534,7 @@ export default function LandingPage() {
                 textDecoration: 'none',
               }}
             >
-              Assinar Pro / Scale
+              {t('pricing.ctaAgency')}
             </a>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
@@ -1599,11 +1547,11 @@ export default function LandingPage() {
               }}
             >
               {[
-                'Taxas: 3,9% + $0,30 por transação',
-                'Múltiplos bots e integrações CRM',
-                'Integrações com webhooks para CRM',
-                'Suporte prioritário 24/7',
-                'Ideal para faturamento > $3.000/mês',
+                locale === 'en' ? 'Fees: 3.9% + $0.30 per transaction' : (locale === 'es' ? 'Tasas: 3.9% + $0.30 por transacción' : 'Taxas: 3,9% + $0,30 por transação'),
+                locale === 'en' ? 'Multiple bots and CRM integrations' : (locale === 'es' ? 'Múltiples bots e integraciones CRM' : 'Múltiplos bots e integrações CRM'),
+                locale === 'en' ? 'Webhook integrations for CRM' : (locale === 'es' ? 'Integraciones con webhooks para CRM' : 'Integrações com webhooks para CRM'),
+                locale === 'en' ? '24/7 priority support' : (locale === 'es' ? 'Soporte prioritario 24/7' : 'Suporte prioritário 24/7'),
+                locale === 'en' ? 'Ideal for billing > $3,000/month' : (locale === 'es' ? 'Ideal para facturación > $3,000/mes' : 'Ideal para faturamento > $3.000/mês'),
               ].map((f) => (
                 <span key={f} style={{ display: 'flex', gap: 9 }}>
                   <IconCheck />
@@ -1627,7 +1575,7 @@ export default function LandingPage() {
               color: ACCENT,
             }}
           >
-            Dúvidas
+            {t('faq.title')}
           </div>
           <h2
             style={{
@@ -1635,14 +1583,15 @@ export default function LandingPage() {
               fontSize: 'clamp(28px,3.6vw,40px)',
               fontWeight: 800,
               letterSpacing: '-.02em',
+              color: isLight ? '#0f172a' : '#fff',
             }}
           >
-            Perguntas frequentes
+            {t('faq.headline')}
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 40 }}>
-          {FAQS.map(({ q, a }) => (
-            <FaqItem key={q} q={q} a={a} isLight={isLight} />
+          {FAQ_KEYS.map((key) => (
+            <FaqItem key={key} q={t(`faq.q${key}`)} a={t(`faq.a${key}`)} isLight={isLight} />
           ))}
         </div>
       </section>
@@ -1686,7 +1635,7 @@ export default function LandingPage() {
                 color: isLight ? '#0f172a' : '#fff',
               }}
             >
-              Transforme sua bio num funil de verdade
+              {t('cta.headline')}
             </h2>
             <p
               style={{
@@ -1697,7 +1646,7 @@ export default function LandingPage() {
                 color: isLight ? '#4f46e5' : '#d4b8e8',
               }}
             >
-              Crie sua primeira página em 60 segundos e veja os cliques chegarem.
+              {t('cta.sub')}
             </p>
             <Link
               href="/login"
@@ -1716,7 +1665,7 @@ export default function LandingPage() {
                 boxShadow: `0 16px 34px -12px ${ACCENT}`,
               }}
             >
-              Começar grátis <IconArrow />
+              {t('cta.button')} <IconArrow />
             </Link>
           </div>
         </div>
@@ -1742,10 +1691,10 @@ export default function LandingPage() {
           </div>
           <div style={{ display: 'flex', gap: 22, fontSize: 13.5, color: mutedTextColor }}>
             {[
-              ['#recursos', 'Recursos'],
-              ['#precos', 'Preços'],
-              ['#faq', 'Dúvidas'],
-              ['#', 'Privacidade'],
+              ['#recursos', t('footer.resources')],
+              ['#precos', t('footer.pricing')],
+              ['#faq', t('footer.faq')],
+              ['#', t('footer.privacy')],
             ].map(([href, label]) => (
               <a key={label} href={href} style={{ color: mutedTextColor, textDecoration: 'none' }}>
                 {label}

@@ -1,15 +1,18 @@
 'use client'
 
 import { MousePointerClick } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 import { type CreatorListRow } from '@/lib/creators'
-
-const nf = (n: number) => n.toLocaleString('pt-BR')
 
 type Props = { creators: CreatorListRow[] }
 
 export function CreatorsStats({ creators }: Props) {
+  const t = useTranslations()
+  const locale = useLocale()
   const totalClicks = creators.reduce((s, c) => s + c.clicks30d, 0)
   const live = creators.filter((c) => c.status === 'live').length
+
+  const nf = (n: number) => n.toLocaleString(locale)
 
   // Build platform click totals in one pass (js-index-maps)
   const byPlatform = new Map<string, { label: string; n: number }>()
@@ -24,24 +27,24 @@ export function CreatorsStats({ creators }: Props) {
 
   const cards = [
     {
-      label: 'Criadoras ativas',
+      label: t('creators.statsActive'),
       value: String(creators.length),
-      sub: `${live} ativas · ${creators.length - live} rascunho`,
+      sub: t('creators.statsActiveSub', { live, drafts: creators.length - live }),
     },
     {
-      label: 'Cliques · 30 dias',
+      label: t('creators.statsClicks'),
       value: nf(totalClicks),
-      sub: 'soma de todas as páginas',
+      sub: t('creators.statsClicksSub'),
     },
     {
-      label: 'Top plataforma',
+      label: t('creators.statsTopPlatform'),
       value: top?.label ?? '—',
-      sub: top ? `${topPct}% de todos os cliques` : 'sem dados',
+      sub: top ? t('creators.statsTopPlatformSub', { pct: topPct }) : t('creators.statsTopPlatformNoData'),
     },
     {
-      label: 'Páginas publicadas',
+      label: t('creators.statsPublished'),
       value: String(live),
-      sub: 'visíveis em /p/{slug}',
+      sub: t('creators.statsPublishedSub', { slug: '{slug}' }),
     },
   ]
 

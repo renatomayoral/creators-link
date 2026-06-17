@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, ExternalLink, Globe, Loader2 } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button } from '@repo/ui/components/button'
 import { Input } from '@repo/ui/components/input'
 import { useToast } from '@repo/ui/hooks/use-toast'
@@ -10,18 +11,21 @@ import { type CreatorDetail } from '@/lib/creators'
 import { Avatar } from './avatar'
 import { DomainInstructions } from './domain-instructions'
 import { Monetization } from './monetization'
-
-const nf = (n: number) => n.toLocaleString('pt-BR')
+import { fmtPrice } from '../_lib/vip-plans'
 
 type Props = { detail: CreatorDetail }
 
 export function Tracking({ detail }: Props) {
+  const t = useTranslations()
+  const locale = useLocale()
   const qc = useQueryClient()
   const { toast } = useToast()
   const maxD = Math.max(1, ...detail.daily)
 
   const [domainInput, setDomainInput] = useState(detail.customDomain ?? '')
   const [domainSaving, setDomainSaving] = useState(false)
+
+  const nf = (n: number) => n.toLocaleString(locale)
 
   const publicUrl = detail.customDomain
     ? `https://${detail.customDomain}`
@@ -38,7 +42,7 @@ export function Tracking({ detail }: Props) {
       const body = (await res.json()) as { error?: string; ok?: boolean }
       if (!res.ok)
         throw new Error(typeof body.error === 'string' ? body.error : 'Erro ao salvar domínio')
-      toast({ title: domainInput.trim() ? 'Domínio salvo' : 'Domínio removido' })
+      toast({ title: domainInput.trim() ? t('creators.toastDomainSaved') : t('creators.toastDomainRemoved') })
       void qc.invalidateQueries({ queryKey: ['creator', detail.id] })
     } catch (e) {
       toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' })
@@ -54,7 +58,7 @@ export function Tracking({ detail }: Props) {
         <div className="flex items-center gap-3">
           <Avatar name={detail.name} url={detail.avatarUrl} size={44} />
           <div>
-            <div className="text-[16px] font-bold">Rastreio de links · {detail.name}</div>
+            <div className="text-[16px] font-bold">{t('creators.trackingTitle', { name: detail.name })}</div>
             <div className="text-muted-foreground font-mono text-[13px]">/p/{detail.slug}</div>
           </div>
         </div>
@@ -62,10 +66,10 @@ export function Tracking({ detail }: Props) {
           <a href={publicUrl} target="_blank" rel="noreferrer">
             <Button variant="outline" size="sm">
               <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-              Ver página
+              {t('creators.viewPage')}
             </Button>
           </a>
-          <Button size="sm">Relatório completo</Button>
+          <Button size="sm">{t('creators.fullReport')}</Button>
         </div>
       </div>
 
@@ -74,11 +78,11 @@ export function Tracking({ detail }: Props) {
         <div>
           <div className="mb-4 flex items-baseline justify-between">
             <span className="text-muted-foreground text-[13px] font-semibold">
-              Cliques · últimos 14 dias
+              {t('creators.clicksLast14')}
             </span>
             <span className="text-[22px] font-extrabold">
               {nf(detail.totalClicks30d)}{' '}
-              <span className="text-muted-foreground text-[13px] font-medium">total</span>
+              <span className="text-muted-foreground text-[13px] font-medium">{t('creators.total')}</span>
             </span>
           </div>
           <div className="flex h-42.5 items-end gap-1.5 border-b pb-0.5">
@@ -94,15 +98,15 @@ export function Tracking({ detail }: Props) {
             ))}
           </div>
           <div className="text-muted-foreground mt-2 flex justify-between text-[11px]">
-            <span>14 dias atrás</span>
-            <span>7 dias</span>
-            <span>hoje</span>
+            <span>{t('creators.daysAgo14')}</span>
+            <span>{t('creators.daysAgo7')}</span>
+            <span>{t('creators.today')}</span>
           </div>
         </div>
 
         <div>
           <span className="text-muted-foreground text-[13px] font-semibold">
-            Cliques por plataforma
+            {t('creators.clicksByPlatform')}
           </span>
           <div className="mt-4 flex flex-col gap-3.5">
             {detail.links.map((l) => (
@@ -132,11 +136,11 @@ export function Tracking({ detail }: Props) {
       <div className="border-t px-5 py-4">
         <div className="mb-3 flex items-center gap-2">
           <Globe className="text-muted-foreground h-4 w-4" />
-          <span className="text-[13px] font-semibold">Domínio customizado</span>
+          <span className="text-[13px] font-semibold">{t('creators.customDomain')}</span>
           {detail.customDomain && (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
               <Check className="h-3 w-3" />
-              Ativo
+              {t('creators.statusLive')}
             </span>
           )}
         </div>
@@ -144,7 +148,7 @@ export function Tracking({ detail }: Props) {
           <Input
             value={domainInput}
             onChange={(e) => setDomainInput(e.target.value)}
-            placeholder="ex: amanda-zarayeva.com"
+            placeholder={t('creators.domainPlaceholder')}
             className="font-mono text-sm"
           />
           <Button
@@ -153,7 +157,7 @@ export function Tracking({ detail }: Props) {
             onClick={saveDomain}
             disabled={domainSaving || domainInput === (detail.customDomain ?? '')}
           >
-            {domainSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+            {domainSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : t('creators.save')}
           </Button>
         </div>
         <DomainInstructions domain={domainInput} />

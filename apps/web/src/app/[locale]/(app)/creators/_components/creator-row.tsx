@@ -2,10 +2,9 @@
 
 import { ChevronRight, Copy } from 'lucide-react'
 import { useToast } from '@repo/ui/hooks/use-toast'
+import { useLocale, useTranslations } from 'next-intl'
 import { type CreatorListRow } from '@/lib/creators'
 import { Avatar } from './avatar'
-
-const nf = (n: number) => n.toLocaleString('pt-BR')
 
 type Props = {
   c: CreatorListRow
@@ -14,13 +13,22 @@ type Props = {
 }
 
 export function CreatorRow({ c, selected, onSelect }: Props) {
+  const t = useTranslations()
+  const locale = useLocale()
   const { toast } = useToast()
+
+  const nf = (n: number) => n.toLocaleString(locale)
 
   function copy(e: React.MouseEvent) {
     e.stopPropagation()
     navigator.clipboard.writeText(`${location.origin}/p/${c.slug}`)
-    toast({ title: 'Link copiado' })
+    toast({ title: t('creators.linkCopied') })
   }
+
+  // Format decimal separator based on locale
+  const formattedChange = locale === 'pt-BR' || locale === 'es'
+    ? String(c.change).replace('.', ',')
+    : String(c.change)
 
   return (
     <button
@@ -50,7 +58,7 @@ export function CreatorRow({ c, selected, onSelect }: Props) {
           style={{ color: c.change >= 0 ? '#34d399' : '#f87171' }}
         >
           {c.change >= 0 ? '+' : ''}
-          {String(c.change).replace('.', ',')}%
+          {formattedChange}%
         </div>
       </div>
 
@@ -82,11 +90,11 @@ export function CreatorRow({ c, selected, onSelect }: Props) {
             style={{ background: 'rgba(52,211,153,.12)', color: '#34d399' }}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#34d399' }} />
-            Ativo
+            {t('creators.statusLive')}
           </span>
         ) : (
           <span className="bg-secondary text-muted-foreground inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold">
-            Rascunho
+            {t('creators.statusDraft')}
           </span>
         )}
       </div>

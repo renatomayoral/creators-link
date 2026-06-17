@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, Pencil, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button } from '@repo/ui/components/button'
 import { Input } from '@repo/ui/components/input'
 import { useToast } from '@repo/ui/hooks/use-toast'
@@ -11,6 +12,8 @@ import { fmtPrice, intervalLabel, type VipPlan } from '../_lib/vip-plans'
 type Props = { plans: VipPlan[]; creatorId: string }
 
 export function VipPlanList({ plans, creatorId }: Props) {
+  const t = useTranslations()
+  const locale = useLocale()
   const qc = useQueryClient()
   const { toast } = useToast()
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -21,7 +24,7 @@ export function VipPlanList({ plans, creatorId }: Props) {
   if (plans.length === 0) {
     return (
       <p className="text-muted-foreground text-[13px]">
-        Nenhum plano VIP ainda. Crie o primeiro abaixo.
+        {t('creators.noPlans')}
       </p>
     )
   }
@@ -33,7 +36,7 @@ export function VipPlanList({ plans, creatorId }: Props) {
       body: JSON.stringify({ active: !plan.active }),
     })
     if (!res.ok) {
-      toast({ title: 'Erro ao atualizar plano', variant: 'destructive' })
+      toast({ title: t('creators.toastUpdateError'), variant: 'destructive' })
       return
     }
     void qc.invalidateQueries({ queryKey: ['vip-plans', creatorId] })
@@ -56,9 +59,9 @@ export function VipPlanList({ plans, creatorId }: Props) {
       if (!res.ok) throw new Error()
       void qc.invalidateQueries({ queryKey: ['vip-plans', creatorId] })
       setEditingId(null)
-      toast({ title: 'Plano atualizado' })
+      toast({ title: t('creators.toastUpdateSuccess') })
     } catch {
-      toast({ title: 'Erro ao salvar', variant: 'destructive' })
+      toast({ title: t('creators.toastSaveError'), variant: 'destructive' })
     } finally {
       setSaving(false)
     }
@@ -67,11 +70,11 @@ export function VipPlanList({ plans, creatorId }: Props) {
   async function remove(planId: string) {
     const res = await fetch(`/api/creators/${creatorId}/plans/${planId}`, { method: 'DELETE' })
     if (!res.ok) {
-      toast({ title: 'Erro ao remover plano', variant: 'destructive' })
+      toast({ title: t('creators.toastRemoveError'), variant: 'destructive' })
       return
     }
     void qc.invalidateQueries({ queryKey: ['vip-plans', creatorId] })
-    toast({ title: 'Plano removido' })
+    toast({ title: t('creators.toastRemoveSuccess') })
   }
 
   return (
@@ -86,21 +89,21 @@ export function VipPlanList({ plans, creatorId }: Props) {
               <Input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Título"
+                placeholder={t('creators.inputTitle')}
                 className="text-sm"
               />
               <Input
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
-                placeholder="Descrição (opcional)"
+                placeholder={`${t('creators.inputDesc')} (${t('creators.optional')})`}
                 className="text-sm"
               />
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => saveEdit(p.id)} disabled={saving}>
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Salvar'}
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t('creators.save')}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                  Cancelar
+                  {t('creators.cancel')}
                 </Button>
               </div>
             </div>
@@ -111,7 +114,7 @@ export function VipPlanList({ plans, creatorId }: Props) {
                   <span className="text-[14px] font-semibold">{p.title}</span>
                   {!p.active && (
                     <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px] font-medium">
-                      inativo
+                      {t('creators.inactive')}
                     </span>
                   )}
                 </div>
@@ -119,16 +122,16 @@ export function VipPlanList({ plans, creatorId }: Props) {
                   <div className="text-muted-foreground mt-0.5 text-[12px]">{p.description}</div>
                 )}
                 <div className="text-muted-foreground mt-1 text-[11px]">
-                  {intervalLabel(p.intervalDay)}
+                  {intervalLabel(p.intervalDay, t)}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <span className="text-[14px] font-bold">{fmtPrice(p.amount, p.currency)}</span>
+                <span className="text-[14px] font-bold">{fmtPrice(p.amount, p.currency, locale)}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  title={p.active ? 'Desativar' : 'Ativar'}
+                  title={p.active ? t('creators.tooltipDeactivate') : t('creators.tooltipActivate')}
                   onClick={() => toggleActive(p)}
                 >
                   {p.active ? (
@@ -141,7 +144,7 @@ export function VipPlanList({ plans, creatorId }: Props) {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  title="Editar"
+                  title={t('creators.tooltipEdit')}
                   onClick={() => startEdit(p)}
                 >
                   <Pencil className="text-muted-foreground h-3.5 w-3.5" />
@@ -150,7 +153,7 @@ export function VipPlanList({ plans, creatorId }: Props) {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  title="Remover"
+                  title={t('creators.tooltipRemove')}
                   onClick={() => remove(p.id)}
                 >
                   <Trash2 className="text-muted-foreground h-3.5 w-3.5" />

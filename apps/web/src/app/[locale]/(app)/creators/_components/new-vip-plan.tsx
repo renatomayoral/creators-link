@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Plus } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,8 @@ const DEFAULT_INTERVAL = '30'
 const DEFAULT_CURRENCY = 'brl'
 
 export function NewVipPlan({ creatorId, onCreated }: Props) {
+  const t = useTranslations()
+  const locale = useLocale()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -41,11 +44,11 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
   async function save() {
     const amount = Math.round(parseFloat(price.replace(',', '.')) * 100)
     if (!title.trim()) {
-      toast({ title: 'Informe o título do plano', variant: 'destructive' })
+      toast({ title: t('creators.toastNoTitle'), variant: 'destructive' })
       return
     }
     if (!Number.isFinite(amount) || amount < 100) {
-      toast({ title: 'Preço mínimo: 1,00', variant: 'destructive' })
+      toast({ title: t('creators.toastMinPrice'), variant: 'destructive' })
       return
     }
     setSaving(true)
@@ -68,7 +71,7 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
       reset()
       setOpen(false)
       onCreated()
-      toast({ title: 'Plano VIP criado' })
+      toast({ title: t('creators.toastCreatePlanSuccess') })
     } catch (e) {
       toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' })
     } finally {
@@ -77,13 +80,13 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
   }
 
   const previewAmount = parseFloat(price.replace(',', '.'))
-  const selectedIntervalLabel = intervalLabel(Number(intervalDay))
+  const selectedIntervalLabel = intervalLabel(Number(intervalDay), t)
 
   return (
     <>
       <Button variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
         <Plus className="mr-1.5 h-4 w-4" />
-        Novo plano VIP
+        {t('creators.newPlanButton')}
       </Button>
 
       <Dialog
@@ -95,45 +98,46 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Novo plano VIP</DialogTitle>
+            <DialogTitle>{t('creators.dialogPlanTitle')}</DialogTitle>
             <DialogDescription>
-              Configure o plano que os fãs verão na página da criadora.
+              {t('creators.dialogPlanDesc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-1">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-medium">Título</label>
+              <label className="text-[13px] font-medium">{t('creators.inputTitle')}</label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: VIP Mensal, Acesso Total, Pack Semanal"
+                placeholder={t('creators.titlePlaceholder')}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-medium">
-                Descrição <span className="text-muted-foreground font-normal">(opcional)</span>
+                {t('creators.inputDesc')}{' '}
+                <span className="text-muted-foreground font-normal">({t('creators.optional')})</span>
               </label>
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Fotos exclusivas + acesso ao grupo VIP"
+                placeholder={t('creators.descPlaceholder')}
               />
             </div>
 
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <label className="text-[13px] font-medium">Preço</label>
+                <label className="text-[13px] font-medium">{t('creators.inputPrice')}</label>
                 <Input
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="Ex: 29,90"
+                  placeholder={t('creators.pricePlaceholder')}
                   inputMode="decimal"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium">Moeda</label>
+                <label className="text-[13px] font-medium">{t('creators.inputCurrency')}</label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
@@ -149,7 +153,7 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-medium">Periodicidade</label>
+              <label className="text-[13px] font-medium">{t('creators.inputPeriodicity')}</label>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {INTERVAL_OPTIONS.map((opt) => (
                   <button
@@ -162,8 +166,8 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
                         : 'border-border text-muted-foreground hover:border-primary/50'
                     }`}
                   >
-                    <span className="text-[13px] font-semibold">{opt.label}</span>
-                    <span className="text-[10px]">{opt.sublabel}</span>
+                    <span className="text-[13px] font-semibold">{t(opt.labelKey)}</span>
+                    <span className="text-[10px]">{t(opt.sublabelKey)}</span>
                   </button>
                 ))}
               </div>
@@ -172,7 +176,7 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
             {title && price && (
               <div className="rounded-xl border border-dashed p-3">
                 <div className="text-muted-foreground mb-1 text-[11px] font-semibold tracking-wider uppercase">
-                  Preview
+                  {t('creators.preview')}
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
@@ -184,7 +188,7 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
                   <div className="text-right">
                     <div className="text-[14px] font-black">
                       {Number.isFinite(previewAmount)
-                        ? fmtPrice(Math.round(previewAmount * 100), currency)
+                        ? fmtPrice(Math.round(previewAmount * 100), currency, locale)
                         : price}
                     </div>
                     <div className="text-muted-foreground text-[11px]">
@@ -204,7 +208,7 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
                 reset()
               }}
             >
-              Cancelar
+              {t('creators.cancel')}
             </Button>
             <Button onClick={save} disabled={saving}>
               {saving ? (
@@ -212,7 +216,7 @@ export function NewVipPlan({ creatorId, onCreated }: Props) {
               ) : (
                 <Plus className="mr-1.5 h-4 w-4" />
               )}
-              Criar plano
+              {t('creators.createPlan')}
             </Button>
           </DialogFooter>
         </DialogContent>

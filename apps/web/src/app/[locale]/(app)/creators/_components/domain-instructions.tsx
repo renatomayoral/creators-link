@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 const DNS_PROVIDERS: { name: string; color: string; url: (d: string) => string }[] = [
   {
@@ -37,6 +38,7 @@ const DNS_PROVIDERS: { name: string; color: string; url: (d: string) => string }
 type Props = { domain: string }
 
 export function DomainInstructions({ domain }: Props) {
+  const t = useTranslations()
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'creatorslink.org'
   const [detected, setDetected] = useState<string | null>(null)
   const [detecting, setDetecting] = useState(false)
@@ -75,17 +77,19 @@ export function DomainInstructions({ domain }: Props) {
   return (
     <div className="bg-muted/40 text-muted-foreground mt-3 rounded-lg border px-3.5 py-3 text-[12px] leading-relaxed">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-foreground font-semibold">
-          Como configurar
+        <div className="text-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+          <span>{t('creators.howToConfigure')}</span>
           {detecting && (
-            <span className="ml-2 text-[11px] font-normal opacity-60">detectando provedor…</span>
-          )}
-          {!detecting && detected && (
-            <span className="ml-2 text-[11px] font-normal text-emerald-400">
-              · {detected} detectado
+            <span className="text-[11px] font-normal opacity-60">
+              {t('creators.detectingProvider')}
             </span>
           )}
-        </p>
+          {!detecting && detected && (
+            <span className="text-[11px] font-normal text-emerald-400">
+              {t('creators.providerDetected', { provider: detected })}
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {sorted.map((p) => {
             const isDetected = detected === p.name
@@ -114,14 +118,17 @@ export function DomainInstructions({ domain }: Props) {
       <ol className="mt-2.5 list-decimal space-y-1 pl-4">
         <li>
           {detected ? (
-            <>
-              Abra o <strong>{detected}</strong> (botão destacado acima) e crie um registro{' '}
-              <strong>CNAME</strong>:
-            </>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: t('creators.instruction1Detected', { detected }),
+              }}
+            />
           ) : (
-            <>
-              No painel do seu provedor (botões acima), crie um registro <strong>CNAME</strong>:
-            </>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: t('creators.instruction1'),
+              }}
+            />
           )}
         </li>
       </ol>
@@ -129,8 +136,8 @@ export function DomainInstructions({ domain }: Props) {
         {cname}
       </pre>
       <ol className="mt-2 list-decimal space-y-1 pl-4" start={2}>
-        <li>Aguarde a propagação do DNS (pode levar até 24h).</li>
-        <li>Salve o domínio acima — a página da criadora passará a responder no domínio dela.</li>
+        <li>{t('creators.instruction2')}</li>
+        <li>{t('creators.instruction3')}</li>
       </ol>
     </div>
   )
