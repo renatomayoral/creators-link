@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
+import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 
@@ -17,7 +17,11 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   if (!(routing.locales as readonly string[]).includes(locale)) notFound()
 
-  const messages = await getMessages()
+  // Informa ao next-intl qual é o locale desta request (necessário para SSG e Server Components)
+  setRequestLocale(locale)
+
+  // Passa o locale explicitamente para garantir as mensagens corretas
+  const messages = await getMessages({ locale })
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
