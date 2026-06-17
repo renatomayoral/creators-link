@@ -29,6 +29,12 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
+      # With Workload Identity Federation the gcloud quota/billing project must
+      # be set explicitly, otherwise serviceusage.services.use checks fail with
+      # "forbidden from accessing the bucket [..._cloudbuild]".
+      - name: Configure gcloud quota project
+        run: gcloud config set billing/quota_project $PROJECT_ID
+
       - name: Build & push via Cloud Build
         run: |
           gcloud builds submit \
