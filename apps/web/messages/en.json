@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "signIn": "Sign in",
+    "getStarted": "Get started for free"
+  },
+  "hero": {
+    "badge": "Link in bio + analytics for creators",
+    "titleSales": "sales",
+    "titleData": "data",
+    "description": "Create beautiful link pages for each creator and track exactly where clicks come from — OnlyFans, Privacy, Instagram and more, all in one dashboard.",
+    "ctaMain": "Get started free",
+    "ctaDemo": "See demo",
+    "trustPublish": "Publish in 60s",
+    "trustNoCard": "No card required",
+    "trustLighthouse": "100% Lighthouse"
+  },
+  "stats": {
+    "clicks": "clicks tracked",
+    "platforms": "platforms integrated",
+    "publish": "to publish a page",
+    "lighthouse": "Lighthouse score"
+  },
+  "features": {
+    "title": "Features",
+    "headline": "Everything a creator needs in one bio",
+    "sub": "Pages built to convert and tracking that proves what works — no spreadsheets, no guesswork."
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "headline": "From idea to first click in 3 steps",
+    "step1Title": "Create by name",
+    "step1Desc": "Type the creator's name. We generate the link and platform buttons automatically.",
+    "step2Title": "Customize and publish",
+    "step2Desc": "Adjust links, accent color, photo, and bio. Publish and the page goes live instantly.",
+    "step3Title": "Track the clicks",
+    "step3Desc": "Share the link in bio. See clicks per day and per platform, in real time, in the dashboard."
+  },
+  "pricing": {
+    "title": "Pricing",
+    "headline": "Start free. Scale as you grow.",
+    "sub": "No card to start. Cancel anytime.",
+    "mostPopular": "MOST POPULAR",
+    "ctaFree": "Create account",
+    "ctaPro": "Subscribe Pro",
+    "ctaAgency": "Talk to sales",
+    "starterDesc": "To get started and validate.",
+    "proDesc": "For creators in growth mode.",
+    "agencyDesc": "For those managing many profiles."
+  },
+  "faq": {
+    "title": "FAQ",
+    "headline": "Frequently asked questions"
+  },
+  "cta": {
+    "headline": "Turn your bio into a real funnel",
+    "sub": "Create your first page in 60 seconds and watch the clicks roll in.",
+    "button": "Get started free"
+  },
+  "footer": {
+    "resources": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "privacy": "Privacy",
+    "copyright": "© 2026 CreatorsLink"
+  },
+  "auth": {
+    "welcome": "Welcome back",
+    "signInAccess": "Sign in to access your dashboard",
+    "continueWith": "Continue with Google",
+    "terms": "By signing in, you agree to our",
+    "termsLink": "Terms",
+    "and": "and",
+    "privacyLink": "Privacy Policy"
+  }
+}

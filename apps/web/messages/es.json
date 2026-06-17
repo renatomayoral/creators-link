@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "features": "Funciones",
+    "howItWorks": "Cómo funciona",
+    "pricing": "Precios",
+    "faq": "Preguntas",
+    "signIn": "Iniciar sesión",
+    "getStarted": "Empezar gratis"
+  },
+  "hero": {
+    "badge": "Link en bio + analytics para creadoras",
+    "titleSales": "ventas",
+    "titleData": "datos",
+    "description": "Crea páginas de links para cada creadora y rastrea exactamente de dónde vienen los clics — OnlyFans, Privacy, Instagram y más, en un solo panel.",
+    "ctaMain": "Empezar gratis",
+    "ctaDemo": "Ver demo",
+    "trustPublish": "Publica en 60s",
+    "trustNoCard": "Sin tarjeta",
+    "trustLighthouse": "100% Lighthouse"
+  },
+  "stats": {
+    "clicks": "clics rastreados",
+    "platforms": "plataformas integradas",
+    "publish": "para publicar una página",
+    "lighthouse": "score en Lighthouse"
+  },
+  "features": {
+    "title": "Funciones",
+    "headline": "Todo lo que una creadora necesita en una bio",
+    "sub": "Páginas hechas para convertir y rastreo que prueba lo que funciona — sin hojas de cálculo, sin suposiciones."
+  },
+  "howItWorks": {
+    "title": "Cómo funciona",
+    "headline": "De la idea al primer clic en 3 pasos",
+    "step1Title": "Crea por nombre",
+    "step1Desc": "Escribe el nombre de la creadora. Generamos el link y los botones de plataformas automáticamente.",
+    "step2Title": "Personaliza y publica",
+    "step2Desc": "Ajusta los links, el color de acento, la foto y la bio. Publica y la página queda en línea al instante.",
+    "step3Title": "Sigue los clics",
+    "step3Desc": "Comparte el link en la bio. Ve clics por día y por plataforma, en tiempo real, en el panel."
+  },
+  "pricing": {
+    "title": "Precios",
+    "headline": "Empieza gratis. Escala cuando crezcas.",
+    "sub": "Sin tarjeta para empezar. Cancela cuando quieras.",
+    "mostPopular": "MÁS POPULAR",
+    "ctaFree": "Crear cuenta",
+    "ctaPro": "Suscribir Pro",
+    "ctaAgency": "Hablar con ventas",
+    "starterDesc": "Para empezar y validar.",
+    "proDesc": "Para creadoras en ritmo de crecimiento.",
+    "agencyDesc": "Para quienes gestionan muchos perfiles."
+  },
+  "faq": {
+    "title": "Preguntas",
+    "headline": "Preguntas frecuentes"
+  },
+  "cta": {
+    "headline": "Convierte tu bio en un embudo de verdad",
+    "sub": "Crea tu primera página en 60 segundos y mira cómo llegan los clics.",
+    "button": "Empezar gratis"
+  },
+  "footer": {
+    "resources": "Funciones",
+    "pricing": "Precios",
+    "faq": "Preguntas",
+    "privacy": "Privacidad",
+    "copyright": "© 2026 CreatorsLink"
+  },
+  "auth": {
+    "welcome": "Bienvenida de nuevo",
+    "signInAccess": "Inicia sesión para acceder a tu panel",
+    "continueWith": "Continuar con Google",
+    "terms": "Al iniciar sesión, aceptas nuestros",
+    "termsLink": "Términos",
+    "and": "y",
+    "privacyLink": "Política de Privacidad"
+  }
+}
