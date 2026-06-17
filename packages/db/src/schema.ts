@@ -1,4 +1,4 @@
-import { platform, creator, creatorLink, linkClick } from './creators'
+import { platform, creator, creatorLink, linkClick, vipPlan, vipSubscription } from './creators'
 import { pgTable, text, timestamp, boolean, integer, date, uniqueIndex } from 'drizzle-orm/pg-core'
 
 // ─── Better Auth core tables ───────────────────────────────────────────────────
@@ -136,6 +136,8 @@ export const schema = {
   creator,
   creatorLink,
   linkClick,
+  vipPlan,
+  vipSubscription,
   user,
   session,
   account,

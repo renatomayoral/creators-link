@@ -49,6 +49,10 @@ export const creator = pgTable(
     accentColor: text('accent_color').$defaultFn(() => '#ec4899').notNull(),
     /** Custom domain the creator owns, e.g. "amanda-zarayeva.com" */
     customDomain: text('custom_domain').unique(),
+    /** Stripe Connect (Express) account id, e.g. "acct_..." — null until connected */
+    stripeAccountId: text('stripe_account_id').unique(),
+    /** True once charges & payouts are enabled on the connected account */
+    stripeOnboarded: boolean('stripe_onboarded').$defaultFn(() => false).notNull(),
     /** 'live' | 'draft' */
     status: text('status').$defaultFn(() => 'draft').notNull(),
     createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
@@ -100,5 +104,71 @@ export const linkClick = pgTable(
   (t) => [
     index('link_click_creator_created_idx').on(t.creatorId, t.createdAt),
     index('link_click_link_idx').on(t.linkId),
+  ],
+)
+
+// ─── VIP plans — paid subscription tiers a creator sells to fans ─────────────
+// Each plan maps to a Stripe Price on the creator's connected account.
+
+export const vipPlan = pgTable(
+  'vip_plan',
+  {
+    id: text('id').primaryKey(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    /** Display name, e.g. "VIP Mensal" */
+    title: text('title').notNull(),
+    description: text('description'),
+    /** Price in cents, in `currency` */
+    amount: integer('amount').notNull(),
+    /** ISO 4217, e.g. "usd", "brl" */
+    currency: text('currency').$defaultFn(() => 'usd').notNull(),
+    /** Billing period in days, e.g. 30 (monthly), 90 (quarterly), 365 (annual) */
+    intervalDay: integer('interval_day').$defaultFn(() => 30).notNull(),
+    /** Stripe Price id on the creator's connected account, e.g. "price_..." */
+    stripePriceId: text('stripe_price_id'),
+    /** NOWPayments subscription plan id (optional crypto track) */
+    nowpaymentsPlanId: text('nowpayments_plan_id'),
+    active: boolean('active').$defaultFn(() => true).notNull(),
+    createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
+  },
+  (t) => [index('vip_plan_creator_idx').on(t.creatorId)],
+)
+
+// ─── VIP subscriptions — one row per fan's active/past subscription ──────────
+// Drives access to the creator's gated channel (Telegram, etc).
+
+export const vipSubscription = pgTable(
+  'vip_subscription',
+  {
+    id: text('id').primaryKey(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    planId: text('plan_id')
+      .notNull()
+      .references(() => vipPlan.id, { onDelete: 'restrict' }),
+    /** Fan email (from checkout) */
+    fanEmail: text('fan_email'),
+    /** Which rail processed this: 'stripe' | 'nowpayments' */
+    provider: text('provider').notNull(),
+    /** Stripe Subscription id, e.g. "sub_..." (stripe rail) */
+    stripeSubscriptionId: text('stripe_subscription_id').unique(),
+    /** Stripe Customer id, e.g. "cus_..." (stripe rail) */
+    stripeCustomerId: text('stripe_customer_id'),
+    /** NOWPayments subscription id (crypto rail) */
+    nowpaymentsSubscriptionId: text('nowpayments_subscription_id').unique(),
+    /** 'active' | 'past_due' | 'canceled' | 'expired' */
+    status: text('status').$defaultFn(() => 'active').notNull(),
+    /** When the current paid period ends — access granted until here */
+    currentPeriodEnd: timestamp('current_period_end'),
+    createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
+  },
+  (t) => [
+    index('vip_subscription_creator_idx').on(t.creatorId),
+    index('vip_subscription_status_idx').on(t.status),
   ],
 )
