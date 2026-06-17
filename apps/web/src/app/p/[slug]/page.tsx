@@ -4,19 +4,33 @@ import { notFound } from 'next/navigation'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { platformMeta } from '@/lib/creators'
+import { VipPlans } from './vip-plans'
 
-const { creator, creatorLink } = schema
+const { creator, creatorLink, vipPlan } = schema
 
 export const revalidate = 60 // ISR: regenerate the page at most once a minute
 
 async function getCreator(slug: string) {
   const c = await db.query.creator.findFirst({ where: eq(creator.slug, slug) })
   if (!c) return null
-  const links = await db.query.creatorLink.findMany({
-    where: eq(creatorLink.creatorId, c.id),
-    orderBy: (l, { asc }) => [asc(l.sortOrder)],
-  })
-  return { ...c, links: links.filter((l) => l.active) }
+  const [links, plans] = await Promise.all([
+    db.query.creatorLink.findMany({
+      where: eq(creatorLink.creatorId, c.id),
+      orderBy: (l, { asc }) => [asc(l.sortOrder)],
+    }),
+    // Only offer VIP plans when the creator can actually receive money.
+    c.stripeOnboarded
+      ? db.query.vipPlan.findMany({
+          where: eq(vipPlan.creatorId, c.id),
+          orderBy: (p, { asc }) => [asc(p.intervalDay)],
+        })
+      : Promise.resolve([]),
+  ])
+  return {
+    ...c,
+    links: links.filter((l) => l.active),
+    plans: plans.filter((p) => p.active),
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -114,6 +128,19 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
             )
           })}
         </div>
+
+        {/* VIP subscription plans — map explicitly so internal ids (stripe/now) don't leak */}
+        <VipPlans
+          accent={accent}
+          plans={c.plans.map((p) => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            amount: p.amount,
+            currency: p.currency,
+            intervalDay: p.intervalDay,
+          }))}
+        />
 
         <div className="mt-9 flex items-center justify-center gap-2 text-[11px] font-semibold tracking-wider" style={{ color: '#52525b' }}>
           <span className="rounded-md border px-1.5 py-0.5" style={{ borderColor: '#3f3f46' }}>18+</span>
