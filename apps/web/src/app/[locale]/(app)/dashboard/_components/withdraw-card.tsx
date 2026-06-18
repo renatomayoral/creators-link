@@ -1,6 +1,6 @@
 'use client'
 
-import { money } from './financeiro-dashboard'
+import { money } from './dashboard'
 
 type Props = { available: number }
 

@@ -29,7 +29,7 @@ export function Navigation() {
   }
 
   const navItems = [
-    { href: `/${locale}/admin`, label: t('navigation.dashboard'), icon: LayoutDashboard },
+    { href: `/${locale}/dashboard`, label: t('navigation.dashboard'), icon: LayoutDashboard },
     { href: `/${locale}/creators`, label: t('navigation.creators'), icon: Users },
 { href: `/${locale}/settings`, label: t('navigation.settings'), icon: Settings },
   ]
@@ -41,7 +41,7 @@ export function Navigation() {
     <nav className="sticky top-0 z-40 border-b bg-card/50 backdrop-blur-sm">
       <div className="container mx-auto max-w-7xl px-4">
         <div className="flex h-14 items-center gap-6">
-          <Link href={`/${locale}/admin`} className="flex shrink-0 items-center">
+          <Link href={`/${locale}/dashboard`} className="flex shrink-0 items-center">
             <Image src={logoSrc} alt="Creators Link" width={160} height={29} priority />
           </Link>
 
@@ -52,7 +52,7 @@ export function Navigation() {
                 href={href}
                 className={cn(
                   'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  pathname === href || (href !== `/${locale}/admin` && pathname.startsWith(href))
+                  pathname === href || (href !== `/${locale}/dashboard` && pathname.startsWith(href))
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-accent/10 hover:text-foreground',
                 )}

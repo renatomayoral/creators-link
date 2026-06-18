@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { money } from './financeiro-dashboard'
-import type { LedgerRow } from './financeiro-dashboard'
+import { money } from './dashboard'
+import type { LedgerRow } from './dashboard'
 
 type Props = { rows: LedgerRow[]; count: number }
 

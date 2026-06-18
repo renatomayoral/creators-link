@@ -1,4 +1,4 @@
-import { fmtBR } from './financeiro-dashboard'
+import { fmtBR } from './dashboard'
 
 type ChartBar = { netH: number; feeH: number; title: string }
 type Props = { chart: ChartBar[]; days: string[] }

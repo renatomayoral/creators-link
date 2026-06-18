@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { DateRange } from './financeiro-dashboard'
-import { fmtFull } from './financeiro-dashboard'
+import type { DateRange } from './dashboard'
+import { fmtFull } from './dashboard'
 
 type Props = { range: DateRange; onChange: (r: DateRange) => void }
 

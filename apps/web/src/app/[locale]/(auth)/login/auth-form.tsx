@@ -43,7 +43,7 @@ type Props = {
 
 export function AuthForm(p: Props) {
   const locale = useLocale()
-  const callbackURL = `/${locale}/creators`
+  const callbackURL = `/${locale}/dashboard`
   const [tab, setTab] = useState<'login' | 'register'>('login')
   const [googleLoading, setGoogleLoading] = useState(false)
   const [serverError, setServerError] = useState('')

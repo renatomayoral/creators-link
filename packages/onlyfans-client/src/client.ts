@@ -1,5 +1,5 @@
-import { buildOfHeaders } from './headers.js'
-import type { OfSession, OfProfile, OfEarningsSummary, OfSubscriberStats, OfStats } from './types.js'
+import { buildOfHeaders } from './headers'
+import type { OfSession, OfProfile, OfEarningsSummary, OfSubscriberStats, OfStats } from './types'
 
 const OF_BASE = 'https://onlyfans.com'
 const API_V2 = `${OF_BASE}/api2/v2`

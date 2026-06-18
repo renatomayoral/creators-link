@@ -1,4 +1,4 @@
-import { compute } from './financeiro-dashboard'
+import { compute } from './dashboard'
 
 type Source = ReturnType<typeof compute>['sources'][number]
 type Props = { sources: Source[] }

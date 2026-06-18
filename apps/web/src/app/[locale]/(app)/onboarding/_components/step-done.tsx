@@ -77,7 +77,7 @@ export function StepDone({ state, locale }: Props) {
           </a>
         )}
         <button
-          onClick={() => router.push(`/${locale}/admin`)}
+          onClick={() => router.push(`/${locale}/dashboard`)}
           className="rounded-xl bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
         >
           Ir para o Dashboard →

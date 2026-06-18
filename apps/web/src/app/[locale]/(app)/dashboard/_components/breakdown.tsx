@@ -1,4 +1,4 @@
-import { money, compute } from './financeiro-dashboard'
+import { money, compute } from './dashboard'
 
 type Props = { data: ReturnType<typeof compute> }
 
