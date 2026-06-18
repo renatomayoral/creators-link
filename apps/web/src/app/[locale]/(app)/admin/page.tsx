@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { DateRangePicker } from '../financeiro/_components/date-range-picker'
 import { KpiRow } from '../financeiro/_components/kpi-row'
 import { RevenueChart } from '../financeiro/_components/revenue-chart'
@@ -31,8 +34,18 @@ function parseISO(d: string) {
   return new Date(p[0]!, p[1]! - 1, p[2]!)
 }
 
+type OnboardingStatus = { onboardingStep: number; selectedPlatforms: string[]; stripeMode: string | null; stripeOnboarded: boolean }
+
 export default function AdminPage() {
+  const locale = useLocale()
   const [range, setRange] = useState<DateRange>({ start: '2026-05-18', end: '2026-06-17' })
+
+  const { data: onboarding } = useQuery<OnboardingStatus>({
+    queryKey: ['onboarding-status'],
+    queryFn: () => fetch('/api/onboarding/status').then(r => r.json()),
+  })
+
+  const showBanner = onboarding && onboarding.onboardingStep < 4
 
   const rows = LEDGER.filter(t => {
     const ts = parseISO(t.date).getTime()
@@ -53,8 +66,39 @@ export default function AdminPage() {
     a.click()
   }, [rows, range])
 
+  const STEPS = [
+    { label: 'Stripe configurado', done: !!onboarding?.stripeMode },
+    { label: 'Plataformas selecionadas', done: (onboarding?.selectedPlatforms.length ?? 0) > 0 },
+    { label: 'Primeira criadora criada', done: (onboarding?.onboardingStep ?? 0) >= 3 },
+  ]
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Onboarding banner */}
+      {showBanner && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-blue-500/25 bg-blue-500/5 px-5 py-4">
+          <div>
+            <p className="text-[13.5px] font-bold">Complete a configuração da plataforma</p>
+            <div className="mt-2 flex flex-wrap gap-4">
+              {STEPS.map(s => (
+                <span key={s.label} className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+                  <span className={s.done ? 'text-emerald-400' : 'text-muted-foreground/40'}>
+                    {s.done ? '✓' : '○'}
+                  </span>
+                  {s.label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <Link
+            href={`/${locale}/onboarding`}
+            className="shrink-0 rounded-xl bg-blue-500 px-4 py-2 text-[13px] font-semibold text-white hover:bg-blue-600"
+          >
+            Continuar setup →
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

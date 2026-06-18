@@ -50,7 +50,8 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/admin') ||
     pathname.startsWith('/creators') ||
     pathname.startsWith('/settings') ||
-    /^\/(br|en|es)\/(admin|creators|settings)(\/|$)/.test(pathname)
+    pathname.startsWith('/onboarding') ||
+    /^\/(br|en|es)\/(admin|creators|settings|onboarding)(\/|$)/.test(pathname)
 
   if (isProtectedRoute) {
     const sessionRes = await fetch(new URL('/api/auth/get-session', req.url), {
@@ -63,6 +64,25 @@ export async function proxy(req: NextRequest) {
       const loginUrl = new URL(`/${locale}/login`, req.url)
       loginUrl.searchParams.set('from', pathname)
       return NextResponse.redirect(loginUrl)
+    }
+
+    // Redirect new users to onboarding (skip if already on onboarding)
+    const isOnboarding = /^\/(br|en|es)\/onboarding(\/|$)/.test(pathname)
+    if (!isOnboarding) {
+      try {
+        const statusRes = await fetch(new URL('/api/onboarding/status', req.url), {
+          headers: req.headers,
+        })
+        if (statusRes.ok) {
+          const status = await statusRes.json()
+          if (status.onboardingStep === 0) {
+            const locale = pathname.match(/^\/(br|en|es)(\/|$)/)?.[1] ?? 'br'
+            return NextResponse.redirect(new URL(`/${locale}/onboarding`, req.url))
+          }
+        }
+      } catch {
+        // non-blocking — if status check fails, let the user through
+      }
     }
   }
 

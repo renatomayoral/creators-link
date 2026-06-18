@@ -1,5 +1,6 @@
 import { platform, creator, creatorLink, linkClick, vipPlan, vipSubscription } from './creators'
 import { pgTable, text, timestamp, boolean, integer, date, uniqueIndex } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 // ─── Better Auth core tables ───────────────────────────────────────────────────
 
@@ -97,6 +98,30 @@ export const userProfile = pgTable('user_profile', {
     .references(() => user.id, { onDelete: 'cascade' }),
   /** One-time welcome video perk for free accounts */
   welcomeVideoUsed: boolean('welcome_video_used')
+    .$defaultFn(() => false)
+    .notNull(),
+  /**
+   * Onboarding progress: 0=not started, 1=stripe done, 2=platforms done,
+   * 3=first creator done, 4=complete
+   */
+  onboardingStep: integer('onboarding_step')
+    .$defaultFn(() => 0)
+    .notNull(),
+  /** Platform keys the user has selected during onboarding, e.g. ["onlyfans","telegram"] */
+  selectedPlatforms: text('selected_platforms')
+    .array()
+    .default(sql`'{}'::text[]`)
+    .notNull(),
+  /**
+   * Stripe Connect model chosen during onboarding.
+   * 'agency' = one account for all creators (stored here).
+   * 'per_creator' = each creator has their own account (stored on creator table).
+   */
+  stripeMode: text('stripe_mode').$type<'agency' | 'per_creator'>(),
+  /** Stripe Express account id when stripeMode = 'agency' */
+  stripeAccountId: text('stripe_account_id'),
+  /** True once the agency-level Stripe account has charges + payouts enabled */
+  stripeOnboarded: boolean('stripe_onboarded')
     .$defaultFn(() => false)
     .notNull(),
   createdAt: timestamp('created_at')

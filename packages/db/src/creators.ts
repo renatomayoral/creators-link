@@ -57,6 +57,8 @@ export const creator = pgTable(
     stripeOnboarded: boolean('stripe_onboarded')
       .$defaultFn(() => false)
       .notNull(),
+    /** Telegram bot token from @BotFather — used to gate the creator's VIP channel */
+    telegramBotToken: text('telegram_bot_token'),
     /** 'live' | 'draft' */
     status: text('status')
       .$defaultFn(() => 'draft')
