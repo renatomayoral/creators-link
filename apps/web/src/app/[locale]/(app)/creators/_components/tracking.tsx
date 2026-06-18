@@ -12,9 +12,9 @@ import { Avatar } from './avatar'
 import { DomainInstructions } from './domain-instructions'
 import { Monetization } from './monetization'
 import { FanvueConnect } from './fanvue-connect'
+import { FanslyConnect } from './fansly-connect'
 import { OnlyFansConnect } from './onlyfans-connect'
 import { PatreonConnect } from './patreon-connect'
-import { BuyMeACoffeeConnect } from './buymeacoffee-connect'
 import { fmtPrice } from '../_lib/vip-plans'
 
 type Props = { detail: CreatorDetail }
@@ -173,9 +173,9 @@ export function Tracking({ detail }: Props) {
           Plataformas conectadas
         </div>
         <OnlyFansConnect creatorId={detail.id} />
+        <FanslyConnect creatorId={detail.id} />
         <FanvueConnect creatorId={detail.id} />
         <PatreonConnect creatorId={detail.id} />
-        <BuyMeACoffeeConnect creatorId={detail.id} />
       </div>
 
       {/* Monetization */}

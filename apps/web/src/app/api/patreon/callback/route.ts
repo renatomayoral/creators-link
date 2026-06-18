@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { auth } from '@repo/auth'
 import { db, schema } from '@repo/db'
 import { eq, and } from 'drizzle-orm'
-import { exchangePatreonCode, getPatreonIdentity } from '@/lib/patreon-oauth'
+import { exchangePatreonCode, getPatreonIdentity, extractCampaignId } from '@/lib/patreon-oauth'
 
 const { platformToken } = schema
 
@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
 
     const patreonUserId = identity.data.id
     const handle = identity.data.attributes.vanity ?? identity.data.attributes.full_name
+    const campaignId = extractCampaignId(identity)
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
     const scopes = tokens.scope.split(' ')
 
@@ -61,7 +62,10 @@ export async function GET(req: NextRequest) {
       expiresAt,
       scopes,
       platformUserId: patreonUserId,
+      // store campaignId in platformHandle prefix so we can fetch members later
       platformHandle: handle,
+      // reuse apiToken field to store campaignId (no extra column needed)
+      apiToken: campaignId ?? undefined,
       updatedAt: new Date(),
     }
 

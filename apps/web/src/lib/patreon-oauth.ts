@@ -87,25 +87,35 @@ export async function patreonGet<T>(path: string, accessToken: string): Promise<
   return res.json()
 }
 
-// Fetch creator identity + campaign in one call
-export async function getPatreonIdentity(accessToken: string) {
-  return patreonGet<{
-    data: {
-      id: string
-      attributes: {
-        full_name: string
-        email: string
-        vanity: string | null
-        url: string
-      }
+type PatreonIdentityResponse = {
+  data: {
+    id: string
+    attributes: {
+      full_name: string
+      email: string
+      vanity: string | null
+      url: string
     }
-    included?: Array<{
-      type: string
-      id: string
-      attributes: Record<string, unknown>
-    }>
-  }>(
-    '/identity?fields[user]=full_name,email,vanity,url&include=campaign&fields[campaign]=patron_count,creation_name',
+    relationships?: {
+      campaign?: { data?: { id: string; type: string } }
+    }
+  }
+  included?: Array<{
+    type: string
+    id: string
+    attributes: { patron_count?: number; creation_name?: string; url?: string }
+  }>
+}
+
+// Fetch creator identity + campaign in one call
+export async function getPatreonIdentity(accessToken: string): Promise<PatreonIdentityResponse> {
+  return patreonGet<PatreonIdentityResponse>(
+    '/identity?fields%5Buser%5D=full_name,email,vanity,url&include=campaign&fields%5Bcampaign%5D=patron_count,creation_name,url',
     accessToken,
   )
+}
+
+// Extract campaignId from identity response
+export function extractCampaignId(identity: PatreonIdentityResponse): string | null {
+  return identity.data.relationships?.campaign?.data?.id ?? null
 }
