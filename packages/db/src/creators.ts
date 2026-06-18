@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, integer, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 // ─── Platforms — available link platforms (admin-managed) ────────────────────
 
@@ -206,5 +207,48 @@ export const vipSubscription = pgTable(
   (t) => [
     index('vip_subscription_creator_idx').on(t.creatorId),
     index('vip_subscription_status_idx').on(t.status),
+  ],
+)
+
+// ─── Platform OAuth tokens — one row per creator per platform ─────────────────
+// Stores OAuth access/refresh tokens so the platform can call APIs on behalf
+// of each creator. Each row is keyed by (creatorId, platform).
+
+export const platformToken = pgTable(
+  'platform_token',
+  {
+    id: text('id').primaryKey(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    /** Platform identifier, e.g. 'fanvue', 'onlyfans' */
+    platform: text('platform').notNull(),
+    /** OAuth access token (short-lived) */
+    accessToken: text('access_token').notNull(),
+    /** OAuth refresh token (long-lived) — used to renew access token */
+    refreshToken: text('refresh_token'),
+    /** When the access token expires */
+    expiresAt: timestamp('expires_at'),
+    /** Scopes granted, e.g. ["read:self","read:subscribers","write:posts"] */
+    scopes: text('scopes')
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    /** Platform user UUID (e.g. Fanvue user uuid) */
+    platformUserId: text('platform_user_id'),
+    /** Platform username/handle for display */
+    platformHandle: text('platform_handle'),
+    /** Fallback: manually entered API token (when OAuth not used) */
+    apiToken: text('api_token'),
+    createdAt: timestamp('created_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: timestamp('updated_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex('platform_token_creator_platform_idx').on(t.creatorId, t.platform),
+    index('platform_token_creator_idx').on(t.creatorId),
   ],
 )

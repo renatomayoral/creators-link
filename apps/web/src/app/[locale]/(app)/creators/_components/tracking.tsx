@@ -11,6 +11,7 @@ import { type CreatorDetail } from '@/lib/creators'
 import { Avatar } from './avatar'
 import { DomainInstructions } from './domain-instructions'
 import { Monetization } from './monetization'
+import { FanvueConnect } from './fanvue-connect'
 import { fmtPrice } from '../_lib/vip-plans'
 
 type Props = { detail: CreatorDetail }
@@ -161,6 +162,14 @@ export function Tracking({ detail }: Props) {
           </Button>
         </div>
         <DomainInstructions domain={domainInput} />
+      </div>
+
+      {/* Platform connections */}
+      <div className="space-y-2">
+        <div className="text-[11.5px] font-bold tracking-widest text-muted-foreground uppercase">
+          Plataformas conectadas
+        </div>
+        <FanvueConnect creatorId={detail.id} />
       </div>
 
       {/* Monetization */}
