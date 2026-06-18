@@ -27,8 +27,12 @@ export async function GET(req: NextRequest) {
 
   if (!token) return NextResponse.json({ connected: false })
 
+  // expiresAt = epoch(0) is the sentinel written by refresh-sessions when OF rejects the session
+  const expired = token.expiresAt !== null && token.expiresAt.getTime() === 0
+
   return NextResponse.json({
     connected: true,
+    expired,
     handle: token.platformHandle,
     platformUserId: token.platformUserId,
   })

@@ -8,11 +8,20 @@ const API_V2 = `${OF_BASE}/api2/v2`
 // Uses the OF internal API (same endpoints the web app calls), authenticated
 // via exported browser session cookies. No Playwright — pure HTTP fetch.
 
+export type RefreshResult =
+  | { refreshed: false }
+  | { refreshed: true; newCookieStr: string }
+
 export class OnlyFansClient {
   constructor(private session: OfSession) {}
 
   // Low-level GET — builds auth headers and calls the internal API
   private async get<T>(path: string): Promise<T> {
+    const { body } = await this.getRaw<T>(path)
+    return body
+  }
+
+  private async getRaw<T>(path: string): Promise<{ body: T; res: Response }> {
     const headers = buildOfHeaders(path, this.session.userId, this.session.cookieStr)
     const res = await fetch(`${OF_BASE}${path}`, { headers })
 
@@ -20,10 +29,34 @@ export class OnlyFansClient {
       throw new OfAuthError(`Session expired or invalid (${res.status}). Re-export cookies.`)
     }
     if (!res.ok) {
-      const body = await res.text()
-      throw new Error(`OnlyFans API error ${res.status} on ${path}: ${body.slice(0, 200)}`)
+      const text = await res.text()
+      throw new Error(`OnlyFans API error ${res.status} on ${path}: ${text.slice(0, 200)}`)
     }
-    return res.json() as Promise<T>
+    const body = await res.json() as T
+    return { body, res }
+  }
+
+  // Attempt to silently refresh the session by making a lightweight request
+  // and capturing any new cookies the OF server sends back in Set-Cookie.
+  // Returns the updated cookie string if the server issued new cookies,
+  // or { refreshed: false } if nothing changed (session still valid as-is).
+  async tryRefreshSession(): Promise<RefreshResult> {
+    const headers = buildOfHeaders('/api2/v2/users/me', this.session.userId, this.session.cookieStr)
+    const res = await fetch(`${OF_BASE}/api2/v2/users/me`, { headers })
+
+    if (res.status === 401 || res.status === 403) {
+      throw new OfAuthError('Session expired — user must reconnect via bookmarklet.')
+    }
+    if (!res.ok) return { refreshed: false }
+
+    // Parse Set-Cookie headers and merge with existing cookies
+    const newCookies = extractSetCookies(res)
+    if (newCookies.size === 0) return { refreshed: false }
+
+    const merged = mergeCookies(this.session.cookieStr, newCookies)
+    if (merged === this.session.cookieStr) return { refreshed: false }
+
+    return { refreshed: true, newCookieStr: merged }
   }
 
   // GET /api2/v2/users/me — own profile + counts
@@ -142,4 +175,46 @@ function mapEarnings(r: Record<string, unknown>): OfEarningsSummary {
     byType: { subscriptions, tips, messages, posts, referrals, other },
     currentBalance: cents(balance),
   }
+}
+
+// ─── Cookie helpers ───────────────────────────────────────────────────────────
+
+// Parse all Set-Cookie headers from a response into a name→value map.
+// fetch() collapses multiple Set-Cookie into one header joined by commas in
+// some runtimes — we handle both forms.
+function extractSetCookies(res: Response): Map<string, string> {
+  const map = new Map<string, string>()
+  // getSetCookie() is available in Node 18+ / undici
+  const raw: string[] =
+    typeof (res.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie === 'function'
+      ? (res.headers as unknown as { getSetCookie: () => string[] }).getSetCookie()
+      : res.headers.get('set-cookie')?.split(/,(?=[^;]+=[^;]+)/) ?? []
+
+  for (const entry of raw) {
+    const part = entry.split(';')[0]!.trim()
+    const idx = part.indexOf('=')
+    if (idx < 0) continue
+    map.set(part.slice(0, idx).trim(), part.slice(idx + 1).trim())
+  }
+  return map
+}
+
+// Merge new cookies from Set-Cookie into the existing cookie string.
+// Existing cookies keep their values unless overridden by a new one.
+function mergeCookies(existing: string, updates: Map<string, string>): string {
+  const pairs = new Map<string, string>()
+
+  for (const part of existing.split(/;\s*/)) {
+    const idx = part.indexOf('=')
+    if (idx < 0) continue
+    pairs.set(part.slice(0, idx).trim(), part.slice(idx + 1).trim())
+  }
+
+  for (const [k, v] of updates) {
+    pairs.set(k, v)
+  }
+
+  return Array.from(pairs.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join('; ')
 }
