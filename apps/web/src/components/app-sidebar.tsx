@@ -21,7 +21,6 @@ import {
   useSidebar,
 } from '@repo/ui/components/sidebar'
 import { ThemeToggle } from './theme-toggle'
-import { LocaleSwitcher } from './locale-switcher'
 
 function SidebarLogo() {
   const { state } = useSidebar()
@@ -126,7 +125,6 @@ export function AppSidebar() {
               </div>
 
               <div className="flex items-center gap-0.5 shrink-0 group-data-[collapsible=icon]:hidden">
-                <LocaleSwitcher />
                 <ThemeToggle />
                 <button
                   onClick={handleSignOut}

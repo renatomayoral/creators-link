@@ -1,19 +1,30 @@
-'use client'
-
 import Link from 'next/link'
-import { useLocale } from 'next-intl'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { eq } from 'drizzle-orm'
 import { Settings2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/components/card'
-import { authClient } from '@repo/auth/client'
+import { auth } from '@repo/auth'
+import { db, schema } from '@repo/db'
+import { LocaleSettings } from './_components/locale-settings'
+import { AccountCard } from './_components/account-card'
 
-export default function SettingsPage() {
-  const { data: session } = authClient.useSession()
-  const user = session?.user
-  const locale = useLocale()
+export const dynamic = 'force-dynamic'
+
+export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) redirect(`/${locale}/login`)
+
+  const profile = await db.query.userProfile.findFirst({
+    where: eq(schema.userProfile.userId, session.user.id),
+  })
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <h1 className="text-2xl font-extrabold tracking-tight">Configurações</h1>
+
+      <LocaleSettings currentLocale={(profile?.preferredLocale ?? locale) as 'br' | 'en' | 'es'} />
 
       <Card>
         <CardHeader>
@@ -33,32 +44,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Sua conta</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            {user?.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.image}
-                alt={user.name ?? ''}
-                className="ring-primary/20 h-14 w-14 rounded-full object-cover ring-2"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="bg-primary/20 text-primary flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold">
-                {(user?.name ?? user?.email ?? 'U')[0]?.toUpperCase()}
-              </div>
-            )}
-            <div>
-              <p className="font-semibold">{user?.name ?? '—'}</p>
-              <p className="text-muted-foreground text-sm">{user?.email ?? '—'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <AccountCard user={session.user} />
     </div>
   )
 }

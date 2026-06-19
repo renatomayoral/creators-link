@@ -1,0 +1,1 @@
+ALTER TABLE "user_profile" ADD COLUMN "preferred_locale" text;

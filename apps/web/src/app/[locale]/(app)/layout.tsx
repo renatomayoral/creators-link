@@ -1,12 +1,39 @@
+import { headers } from 'next/headers'
+import { eq } from 'drizzle-orm'
 import { Toaster } from '@repo/ui/components/toaster'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@repo/ui/components/sidebar'
 import { Separator } from '@repo/ui/components/separator'
 import { Providers } from '@/app/providers'
 import { AppSidebar } from '@/components/app-sidebar'
+import { LocaleSync } from '@/components/locale-sync'
+import { auth } from '@repo/auth'
+import { db, schema } from '@repo/db'
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  const session = await auth.api.getSession({ headers: await headers() })
+
+  let preferredLocale: string | null = null
+  if (session) {
+    const profile = await db.query.userProfile.findFirst({
+      where: eq(schema.userProfile.userId, session.user.id),
+      columns: { preferredLocale: true },
+    })
+    preferredLocale = profile?.preferredLocale ?? null
+  }
+
   return (
     <Providers>
+      {/* Silently redirects to preferred locale if it differs from current URL */}
+      {preferredLocale && preferredLocale !== locale && (
+        <LocaleSync preferredLocale={preferredLocale} currentLocale={locale} />
+      )}
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>

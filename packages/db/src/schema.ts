@@ -124,6 +124,8 @@ export const userProfile = pgTable('user_profile', {
   stripeOnboarded: boolean('stripe_onboarded')
     .$defaultFn(() => false)
     .notNull(),
+  /** User's preferred UI language, overrides browser detection. One of: 'br', 'en', 'es' */
+  preferredLocale: text('preferred_locale').$type<'br' | 'en' | 'es'>(),
   createdAt: timestamp('created_at')
     .$defaultFn(() => new Date())
     .notNull(),
