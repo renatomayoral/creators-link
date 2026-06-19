@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { LayoutDashboard, Users, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, LogOut, ChevronsUpDown } from 'lucide-react'
 import { authClient } from '@repo/auth/client'
 import {
   Sidebar,
@@ -18,7 +18,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from '@repo/ui/components/sidebar'
 import { ThemeToggle } from './theme-toggle'
 import { LocaleSwitcher } from './locale-switcher'
@@ -51,11 +50,17 @@ export function AppSidebar() {
   const user = session?.user
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b px-3 py-3">
-        <Link href={`/${locale}/dashboard`} className="flex items-center">
-          <Image src={logoSrc} alt="Creators Link" width={140} height={25} priority />
-        </Link>
+    <Sidebar collapsible="offcanvas" variant="inset">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5!">
+              <Link href={`/${locale}/dashboard`} className="flex items-center gap-2">
+                <Image src={logoSrc} alt="Creators Link" width={130} height={24} priority />
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
@@ -82,40 +87,45 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {user?.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.image}
-                alt={user.name ?? 'User'}
-                className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-                {(user?.name ?? user?.email ?? 'U')[0]?.toUpperCase()}
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center justify-between gap-2 px-1 py-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                {user?.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.image}
+                    alt={user.name ?? 'User'}
+                    className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold">
+                    {(user?.name ?? user?.email ?? 'U')[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="grid flex-1 min-w-0 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{user?.name ?? ''}</span>
+                  <span className="truncate text-xs text-muted-foreground">{user?.email ?? ''}</span>
+                </div>
               </div>
-            )}
-            <span className="truncate text-[13px] font-medium">{user?.name ?? user?.email}</span>
-          </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <LocaleSwitcher />
-            <ThemeToggle />
-            <button
-              onClick={handleSignOut}
-              className="flex items-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-              title={t('navigation.signOut')}
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <LocaleSwitcher />
+                <ThemeToggle />
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  title={t('navigation.signOut')}
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
-
-      <SidebarRail />
     </Sidebar>
   )
 }
