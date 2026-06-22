@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import Image from 'next/image'
 import type { OnboardingState } from './onboarding-wizard'
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? '@CreatorsLinkBot'
@@ -46,6 +47,31 @@ export function StepTelegram({ state, updateState, onNext, onBack }: Props) {
   // Shared
   const [error, setError] = useState<string | null>(null)
   const channelDone = createStatus === 'success' || connectStatus === 'success'
+
+  // Photo upload
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !state.creatorId) return
+    setPhotoPreview(URL.createObjectURL(file))
+    setPhotoUploading(true)
+    setPhotoError(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('creatorId', state.creatorId)
+      const res = await fetch('/api/upload/channel-photo', { method: 'POST', body: form })
+      if (!res.ok) { const d = await res.json(); setPhotoError(d.error ?? 'Erro no upload') }
+    } catch {
+      setPhotoError('Erro de conexão.')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
 
   // Payment methods
   const [payments, setPayments] = useState<Set<string>>(new Set())
@@ -179,6 +205,42 @@ export function StepTelegram({ state, updateState, onNext, onBack }: Props) {
 
             {createStatus !== 'success' ? (
               <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-semibold">Foto de perfil do canal</label>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-accent/30 hover:border-blue-500 hover:bg-blue-500/5 transition-all"
+                    >
+                      {photoPreview ? (
+                        <Image src={photoPreview} alt="Foto do canal" fill className="object-cover" />
+                      ) : (
+                        <span className="text-xl">📷</span>
+                      )}
+                      {photoUploading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                          <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M12 2a10 10 0 0 1 10 10"/>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => photoInputRef.current?.click()}
+                        className="w-fit rounded-lg border border-border px-3 py-1.5 text-[12px] font-semibold hover:bg-accent transition-colors"
+                      >
+                        {photoPreview ? 'Trocar foto' : 'Selecionar foto'}
+                      </button>
+                      <p className="text-[11.5px] text-muted-foreground">JPG ou PNG, mínimo 160×160px</p>
+                    </div>
+                    <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
+                  </div>
+                  {photoError && <p className="text-[12px] text-red-400">{photoError}</p>}
+                </div>
+
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[12.5px] font-semibold">Nome do canal <span className="text-red-400">*</span></label>
                   <input
