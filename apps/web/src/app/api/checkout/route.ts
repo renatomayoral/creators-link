@@ -4,28 +4,22 @@ import { z } from 'zod'
 import { db, schema } from '@repo/db'
 import { createSubscriptionCheckout } from '@repo/payments/stripe/connect'
 
-const { creator, vipPlan, subscription } = schema
+const { creator, vipPlan, vipPlanPrice, subscription } = schema
 
 function appUrl(): string {
   return process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000'
 }
 
-/** Resolves the creator owner's platform plan (drives the take rate). */
 async function ownerPlatformPlan(userId: string): Promise<string> {
   const sub = await db.query.subscription.findFirst({
     where: and(eq(subscription.referenceId, userId), eq(subscription.status, 'active')),
   })
-  return sub?.plan ?? 'spark' // default to highest take rate when no paid plan
+  return sub?.plan ?? 'spark'
 }
-
-// ─── POST /api/checkout — a fan subscribes to a creator's VIP plan ───────────
-// Public route (the fan is not authenticated). Creates a Stripe Checkout
-// Session with a destination charge to the creator's connected account and
-// the platform application fee.
 
 const bodySchema = z.object({
   planId: z.string().min(1),
-  /** Optional fan email to prefill the checkout. */
+  currency: z.string().length(3).toLowerCase().default('usd'),
   email: z.string().email().optional(),
 })
 
@@ -34,13 +28,24 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
-  const { planId, email } = parsed.data
+  const { planId, currency, email } = parsed.data
 
   const plan = await db.query.vipPlan.findFirst({
     where: and(eq(vipPlan.id, planId), eq(vipPlan.active, true)),
   })
-  if (!plan || !plan.stripePriceId) {
-    return NextResponse.json({ error: 'Plan not available' }, { status: 404 })
+  if (!plan) return NextResponse.json({ error: 'Plan not available' }, { status: 404 })
+
+  // Find the Stripe price for the requested currency
+  const price = await db.query.vipPlanPrice.findFirst({
+    where: and(
+      eq(vipPlanPrice.planId, planId),
+      eq(vipPlanPrice.currency, currency),
+      eq(vipPlanPrice.provider, 'stripe'),
+      eq(vipPlanPrice.active, true),
+    ),
+  })
+  if (!price?.stripePriceId) {
+    return NextResponse.json({ error: 'Price not available for this currency' }, { status: 404 })
   }
 
   const c = await db.query.creator.findFirst({ where: eq(creator.id, plan.creatorId) })
@@ -54,14 +59,9 @@ export async function POST(req: NextRequest) {
     const checkoutSession = await createSubscriptionCheckout({
       creatorAccountId: c.stripeAccountId,
       creatorPlatformPlan: platformPlan,
-      priceId: plan.stripePriceId,
+      priceId: price.stripePriceId,
       customerEmail: email,
-      metadata: {
-        creatorId: c.id,
-        planId: plan.id,
-        // tells the webhook which rail/owner to attribute this to
-        provider: 'stripe',
-      },
+      metadata: { creatorId: c.id, planId: plan.id, provider: 'stripe' },
       successUrl: `${appUrl()}/p/${c.slug}?vip=success`,
       cancelUrl: `${appUrl()}/p/${c.slug}?vip=cancel`,
     })

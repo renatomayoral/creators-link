@@ -62,6 +62,21 @@ export const creator = pgTable(
     telegramChannelId: text('telegram_channel_id'),
     /** Human-readable channel title for display, e.g. "VIP da Babi 🔥" */
     telegramChannelTitle: text('telegram_channel_title'),
+    /** Photo uploaded here and applied to the Telegram channel via setChatPhoto */
+    channelPhotoUrl: text('channel_photo_url'),
+    /** Pix key for receiving splits, e.g. CPF, email, phone, random key */
+    pixKey: text('pix_key'),
+    /** Type of Pix key: cpf | cnpj | email | phone | random */
+    pixKeyType: text('pix_key_type'),
+    /** Platform fee percentage charged by Creators Link, e.g. 10.00 = 10% */
+    platformFeePct: text('platform_fee_pct')
+      .$defaultFn(() => '10.00')
+      .notNull(),
+    /** Payment methods accepted: stripe, pix_manual, pix_auto */
+    acceptedPayments: text('accepted_payments')
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
     /** 'live' | 'draft' */
     status: text('status')
       .$defaultFn(() => 'draft')
@@ -131,7 +146,6 @@ export const linkClick = pgTable(
 )
 
 // ─── VIP plans — paid subscription tiers a creator sells to fans ─────────────
-// Each plan maps to a Stripe Price on the creator's connected account.
 
 export const vipPlan = pgTable(
   'vip_plan',
@@ -140,23 +154,13 @@ export const vipPlan = pgTable(
     creatorId: text('creator_id')
       .notNull()
       .references(() => creator.id, { onDelete: 'cascade' }),
-    /** Display name, e.g. "VIP Mensal" */
+    /** Display name, e.g. "VIP Basic" */
     title: text('title').notNull(),
     description: text('description'),
-    /** Price in cents, in `currency` */
-    amount: integer('amount').notNull(),
-    /** ISO 4217, e.g. "usd", "brl" */
-    currency: text('currency')
-      .$defaultFn(() => 'usd')
-      .notNull(),
     /** Billing period in days, e.g. 30 (monthly), 90 (quarterly), 365 (annual) */
     intervalDay: integer('interval_day')
       .$defaultFn(() => 30)
       .notNull(),
-    /** Stripe Price id on the creator's connected account, e.g. "price_..." */
-    stripePriceId: text('stripe_price_id'),
-    /** NOWPayments subscription plan id (optional crypto track) */
-    nowpaymentsPlanId: text('nowpayments_plan_id'),
     active: boolean('active')
       .$defaultFn(() => true)
       .notNull(),
@@ -168,6 +172,37 @@ export const vipPlan = pgTable(
       .notNull(),
   },
   (t) => [index('vip_plan_creator_idx').on(t.creatorId)],
+)
+
+// ─── VIP plan prices — one row per currency/provider per plan ─────────────────
+// A plan can have prices in BRL (pix_auto, pix_manual) and USD/EUR (stripe).
+
+export const vipPlanPrice = pgTable(
+  'vip_plan_price',
+  {
+    id: text('id').primaryKey(),
+    planId: text('plan_id')
+      .notNull()
+      .references(() => vipPlan.id, { onDelete: 'cascade' }),
+    /** ISO 4217 lowercase, e.g. "brl", "usd", "eur" */
+    currency: text('currency').notNull(),
+    /** Amount in the smallest currency unit (centavos / cents) */
+    amountCents: integer('amount_cents').notNull(),
+    /** Payment provider: stripe | pix_auto | pix_manual */
+    provider: text('provider').notNull(),
+    /** Stripe Price id when provider = stripe */
+    stripePriceId: text('stripe_price_id'),
+    active: boolean('active')
+      .$defaultFn(() => true)
+      .notNull(),
+    createdAt: timestamp('created_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    index('vip_plan_price_plan_idx').on(t.planId),
+    uniqueIndex('vip_plan_price_plan_currency_provider_idx').on(t.planId, t.currency, t.provider),
+  ],
 )
 
 // ─── VIP subscriptions — one row per fan's active/past subscription ──────────

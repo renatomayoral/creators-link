@@ -6,30 +6,41 @@ import { db, schema } from '@repo/db'
 import { platformMeta } from '@/lib/creators'
 import { VipPlans } from './vip-plans'
 
-const { creator, creatorLink, vipPlan } = schema
+const { creator, creatorLink, vipPlan, vipPlanPrice } = schema
 
 export const revalidate = 60 // ISR: regenerate the page at most once a minute
 
 async function getCreator(slug: string) {
   const c = await db.query.creator.findFirst({ where: eq(creator.slug, slug) })
   if (!c) return null
+  const hasPayments = c.stripeOnboarded || (c.acceptedPayments?.length ?? 0) > 0
   const [links, plans] = await Promise.all([
     db.query.creatorLink.findMany({
       where: eq(creatorLink.creatorId, c.id),
       orderBy: (l, { asc }) => [asc(l.sortOrder)],
     }),
-    // Only offer VIP plans when the creator can actually receive money.
-    c.stripeOnboarded
+    hasPayments
       ? db.query.vipPlan.findMany({
           where: eq(vipPlan.creatorId, c.id),
           orderBy: (p, { asc }) => [asc(p.intervalDay)],
         })
       : Promise.resolve([]),
   ])
+  const activePlans = plans.filter((p) => p.active)
+  const planIds = activePlans.map((p) => p.id)
+  const prices = planIds.length > 0
+    ? await db.query.vipPlanPrice.findMany({
+        where: (vpp, { inArray }) => inArray(vpp.planId, planIds),
+      })
+    : []
+  const pricesByPlan = prices.reduce<Record<string, typeof prices>>((acc, pr) => {
+    ;(acc[pr.planId] ??= []).push(pr)
+    return acc
+  }, {})
   return {
     ...c,
     links: links.filter((l) => l.active),
-    plans: plans.filter((p) => p.active),
+    plans: activePlans.map((p) => ({ ...p, prices: pricesByPlan[p.id] ?? [] })),
   }
 }
 
@@ -202,9 +213,12 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
             id: p.id,
             title: p.title,
             description: p.description,
-            amount: p.amount,
-            currency: p.currency,
             intervalDay: p.intervalDay,
+            prices: p.prices.map(pr => ({
+              currency: pr.currency,
+              amountCents: pr.amountCents,
+              provider: pr.provider,
+            })),
           }))}
         />
 

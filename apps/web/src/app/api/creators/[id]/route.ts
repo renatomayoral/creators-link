@@ -122,6 +122,11 @@ const patchSchema = z.object({
   status: z.enum(['live', 'draft']).optional(),
   telegramChannelId: z.string().max(200).nullable().optional(),
   telegramChannelTitle: z.string().max(200).nullable().optional(),
+  channelPhotoUrl: z.string().max(500).nullable().optional(),
+  pixKey: z.string().max(200).nullable().optional(),
+  pixKeyType: z.enum(['cpf', 'cnpj', 'email', 'phone', 'random']).nullable().optional(),
+  platformFeePct: z.string().regex(/^\d{1,3}(\.\d{1,2})?$/).optional(),
+  acceptedPayments: z.array(z.enum(['stripe', 'pix_manual', 'pix_auto'])).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

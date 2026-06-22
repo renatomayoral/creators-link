@@ -5,7 +5,7 @@ import { db, schema } from '@repo/db'
 import { auth } from '@repo/auth'
 import { archiveVipPrice } from '@repo/payments/stripe/connect'
 
-const { creator, vipPlan } = schema
+const { creator, vipPlan, vipPlanPrice } = schema
 
 async function ownedPlan(creatorId: string, planId: string, userId: string) {
   const c = await db.query.creator.findFirst({ where: eq(creator.id, creatorId) })
@@ -17,7 +17,7 @@ async function ownedPlan(creatorId: string, planId: string, userId: string) {
   return { creator: c, plan }
 }
 
-// ─── PATCH /api/creators/[id]/plans/[planId] — toggle active / edit meta ──────
+// ─── PATCH /api/creators/[id]/plans/[planId] ─────────────────────────────────
 
 const patchSchema = z.object({
   title: z.string().min(2).max(60).optional(),
@@ -41,18 +41,20 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  // Deactivating archives the Stripe Price so it can no longer be subscribed to.
-  if (
-    parsed.data.active === false &&
-    owned.plan.active &&
-    owned.plan.stripePriceId &&
-    owned.creator.stripeAccountId
-  ) {
-    try {
-      await archiveVipPrice(owned.creator.stripeAccountId, owned.plan.stripePriceId)
-    } catch (err) {
-      console.error('stripe price archive failed', err)
-      return NextResponse.json({ error: 'Could not deactivate plan' }, { status: 502 })
+  // When deactivating, archive all Stripe prices on this plan
+  if (parsed.data.active === false && owned.plan.active && owned.creator.stripeAccountId) {
+    const stripePrices = await db.query.vipPlanPrice.findMany({
+      where: and(eq(vipPlanPrice.planId, planId), eq(vipPlanPrice.provider, 'stripe')),
+    })
+    for (const price of stripePrices) {
+      if (price.stripePriceId) {
+        try {
+          await archiveVipPrice(owned.creator.stripeAccountId, price.stripePriceId)
+          await db.update(vipPlanPrice).set({ active: false }).where(eq(vipPlanPrice.id, price.id))
+        } catch (err) {
+          console.error('stripe price archive failed', err)
+        }
+      }
     }
   }
 
@@ -65,8 +67,6 @@ export async function PATCH(
 }
 
 // ─── DELETE /api/creators/[id]/plans/[planId] ─────────────────────────────────
-// FK from vip_subscription uses ON DELETE restrict — a plan with subscriptions
-// can't be hard-deleted; deactivate it instead.
 
 export async function DELETE(
   req: NextRequest,
@@ -79,22 +79,23 @@ export async function DELETE(
   const owned = await ownedPlan(id, planId, session.user.id)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  if (owned.plan.stripePriceId && owned.creator.stripeAccountId) {
-    try {
-      await archiveVipPrice(owned.creator.stripeAccountId, owned.plan.stripePriceId)
-    } catch (err) {
-      console.error('stripe price archive failed', err)
+  // Archive all Stripe prices before deleting
+  if (owned.creator.stripeAccountId) {
+    const stripePrices = await db.query.vipPlanPrice.findMany({
+      where: and(eq(vipPlanPrice.planId, planId), eq(vipPlanPrice.provider, 'stripe')),
+    })
+    for (const price of stripePrices) {
+      if (price.stripePriceId) {
+        await archiveVipPrice(owned.creator.stripeAccountId, price.stripePriceId).catch(() => null)
+      }
     }
   }
 
   try {
     await db.delete(vipPlan).where(eq(vipPlan.id, planId))
   } catch {
-    // Has subscriptions (restrict) — fall back to soft delete.
-    await db
-      .update(vipPlan)
-      .set({ active: false, updatedAt: new Date() })
-      .where(eq(vipPlan.id, planId))
+    // Has subscriptions (restrict FK) — soft delete
+    await db.update(vipPlan).set({ active: false, updatedAt: new Date() }).where(eq(vipPlan.id, planId))
     return NextResponse.json({ ok: true, softDeleted: true })
   }
 
