@@ -12,6 +12,7 @@ import { Avatar } from './avatar'
 import { CreatorLinks } from './creator-links'
 import { DomainInstructions } from './domain-instructions'
 import { Monetization } from './monetization'
+import { CryptoPanel } from './crypto-panel'
 import { FanvueConnect } from './fanvue-connect'
 import { FanslyConnect } from './fansly-connect'
 import { OnlyFansConnect } from './onlyfans-connect'
@@ -184,6 +185,9 @@ export function Tracking({ detail }: Props) {
 
       {/* Monetization */}
       <Monetization detail={detail} />
+
+      {/* Crypto custody */}
+      <CryptoPanel detail={detail} />
     </div>
   )
 }

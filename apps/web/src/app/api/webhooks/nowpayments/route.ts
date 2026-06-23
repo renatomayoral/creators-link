@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
-import { verifyIpnSignature } from '@/lib/nowpayments'
+import { verifyIpnSignature, transferToCustomer, withdrawFromCustomer } from '@/lib/nowpayments'
 import { sendCryptoAccessGranted, sendAccessExpired } from '@/lib/email'
 
 const { vipSubscription, vipPlan, creator } = schema
@@ -50,6 +50,39 @@ export async function POST(req: NextRequest) {
       .update(vipSubscription)
       .set({ status: 'active', currentPeriodEnd: periodEnd, updatedAt: new Date() })
       .where(eq(vipSubscription.id, sub.id))
+
+    // ── Custody split: transfer creator share after platform fee ─────────────
+    if (c?.nowpaymentsCustomerId) {
+      const payAmount = Number(payload['pay_amount'] ?? payload['actually_paid'] ?? 0)
+      const payCurrency = String(payload['pay_currency'] ?? payload['outcome_currency'] ?? '')
+
+      if (payAmount > 0 && payCurrency) {
+        const feePct = Number(c.platformFeePct ?? '10') / 100
+        const creatorShare = Number((payAmount * (1 - feePct)).toFixed(8))
+
+        try {
+          await transferToCustomer({
+            customerId: c.nowpaymentsCustomerId,
+            currency: payCurrency,
+            amount: creatorShare,
+          })
+
+          // Auto-withdraw if enabled and wallet is configured
+          if (c.cryptoAutoWithdraw && c.cryptoWithdrawAddress && c.cryptoWithdrawCurrency) {
+            await withdrawFromCustomer({
+              customerId: c.nowpaymentsCustomerId,
+              address: c.cryptoWithdrawAddress,
+              currency: c.cryptoWithdrawCurrency,
+              amount: creatorShare,
+            }).catch(err =>
+              console.error('[nowpayments webhook] auto-withdraw failed:', err)
+            )
+          }
+        } catch (err) {
+          console.error('[nowpayments webhook] custody split failed:', err)
+        }
+      }
+    }
 
     // Generate one-time Telegram invite link and email it to the fan
     if (botToken && c?.telegramChannelId && sub.fanEmail) {

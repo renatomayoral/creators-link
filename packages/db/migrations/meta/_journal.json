@@ -85,6 +85,13 @@
       "when": 1782244826819,
       "tag": "0011_youthful_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782246206135,
+      "tag": "0012_lucky_zarda",
+      "breakpoints": true
     }
   ]
 }

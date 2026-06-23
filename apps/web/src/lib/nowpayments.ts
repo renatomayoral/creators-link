@@ -227,6 +227,114 @@ export async function deleteSubscription(subId: string): Promise<void> {
   })
 }
 
+// ─── Custody — Customer management ───────────────────────────────────────────
+// Requires Custody to be activated in the NowPayments dashboard.
+
+export type NowCustomer = {
+  id: string
+  externalId: string
+  email?: string
+  createdAt: string
+}
+
+export async function createCustomer(params: {
+  externalId: string  // our creator.id
+  email?: string
+}): Promise<NowCustomer> {
+  const token = await authToken()
+  const apiKey = process.env['NOWPAYMENTS_API_KEY'] ?? ''
+  const res = await fetch('https://api.nowpayments.io/v1/customers', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-api-key': apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      external_id: params.externalId,
+      email: params.email,
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(`NowPayments createCustomer error: ${JSON.stringify(data)}`)
+  const r = data.result ?? data
+  return { id: String(r.id), externalId: r.external_id, email: r.email, createdAt: r.created_at }
+}
+
+export type CustomerBalance = {
+  currency: string
+  balance: number
+}
+
+export async function getCustomerBalance(customerId: string): Promise<CustomerBalance[]> {
+  const token = await authToken()
+  const apiKey = process.env['NOWPAYMENTS_API_KEY'] ?? ''
+  const res = await fetch(`https://api.nowpayments.io/v1/customers/${customerId}/balance`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'x-api-key': apiKey },
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(`NowPayments getCustomerBalance error: ${JSON.stringify(data)}`)
+  const balances: CustomerBalance[] = []
+  for (const [currency, balance] of Object.entries(data.result ?? data)) {
+    balances.push({ currency, balance: Number(balance) })
+  }
+  return balances
+}
+
+// Transfer from master account to a customer (after fee deduction)
+export async function transferToCustomer(params: {
+  customerId: string
+  currency: string   // e.g. "usdttrc20"
+  amount: number
+}): Promise<void> {
+  const token = await authToken()
+  const apiKey = process.env['NOWPAYMENTS_API_KEY'] ?? ''
+  const res = await fetch('https://api.nowpayments.io/v1/custody/transfer', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-api-key': apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      customer_id: params.customerId,
+      currency: params.currency,
+      amount: params.amount,
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(`NowPayments transferToCustomer error: ${JSON.stringify(data)}`)
+}
+
+// Withdraw from customer balance to their external wallet
+export async function withdrawFromCustomer(params: {
+  customerId: string
+  address: string
+  currency: string
+  amount: number
+}): Promise<{ withdrawalId: string }> {
+  const token = await authToken()
+  const apiKey = process.env['NOWPAYMENTS_API_KEY'] ?? ''
+  const res = await fetch('https://api.nowpayments.io/v1/custody/withdrawal', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-api-key': apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      customer_id: params.customerId,
+      address: params.address,
+      currency: params.currency,
+      amount: params.amount,
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(`NowPayments withdrawFromCustomer error: ${JSON.stringify(data)}`)
+  const r = data.result ?? data
+  return { withdrawalId: String(r.id) }
+}
+
 export function verifyIpnSignature(payload: string, signature: string): boolean {
   const secret = process.env['NOWPAYMENTS_IPN_SECRET'] ?? ''
   const hmac = createHmac('sha512', secret).update(payload).digest('hex')

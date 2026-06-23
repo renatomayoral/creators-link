@@ -10,6 +10,7 @@ import { type CreatorDetail } from '@/lib/creators'
 import { Avatar } from './avatar'
 import { DomainInstructions } from './domain-instructions'
 import { Monetization } from './monetization'
+import { CryptoPanel } from './crypto-panel'
 
 const nf = (n: number) => n.toLocaleString('pt-BR')
 
@@ -161,6 +162,9 @@ export function Tracking({ detail }: Props) {
 
       {/* Monetization */}
       <Monetization detail={detail} />
+
+      {/* Crypto custody */}
+      <CryptoPanel detail={detail} />
     </div>
   )
 }

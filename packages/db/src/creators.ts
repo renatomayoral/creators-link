@@ -72,6 +72,16 @@ export const creator = pgTable(
     platformFeePct: text('platform_fee_pct')
       .$defaultFn(() => '10.00')
       .notNull(),
+    /** NOWPayments Custody customer id — created when creator enables crypto */
+    nowpaymentsCustomerId: text('nowpayments_customer_id').unique(),
+    /** Crypto wallet address to withdraw to (e.g. USDT TRC-20) */
+    cryptoWithdrawAddress: text('crypto_withdraw_address'),
+    /** Crypto ticker for withdrawals, e.g. "usdttrc20" */
+    cryptoWithdrawCurrency: text('crypto_withdraw_currency'),
+    /** If true, funds are auto-sent to cryptoWithdrawAddress on every confirmed payment */
+    cryptoAutoWithdraw: boolean('crypto_auto_withdraw')
+      .$defaultFn(() => false)
+      .notNull(),
     /** Payment methods accepted: stripe, pix_manual, pix_auto */
     acceptedPayments: text('accepted_payments')
       .array()
