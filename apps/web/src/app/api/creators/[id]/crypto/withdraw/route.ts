@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
-import { auth } from '@/lib/auth'
+import { auth } from '@repo/auth'
 import { getCustomerBalance, withdrawFromCustomer } from '@/lib/nowpayments'
 
 const { creator } = schema
