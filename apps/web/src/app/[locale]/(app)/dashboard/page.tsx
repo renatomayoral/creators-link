@@ -14,43 +14,36 @@ import { TransactionsTable } from './_components/transactions-table'
 import { compute } from './_components/dashboard'
 import type { DateRange, LedgerRow } from './_components/dashboard'
 
-const LEDGER: LedgerRow[] = [
-  { id: 'TX-9412', date: '2026-06-17', creator: 'Babi Barelli',  source: 'OnlyFans',                sc: '#ec4899', gross: 100.00, pf: 0.039, fx: 0.02 },
-  { id: 'TX-9410', date: '2026-06-16', creator: 'Babi Barelli',  source: 'Telegram · Plano VIP',    sc: '#38bdf8', gross:  49.90, pf: 0.029, fx: 0.02, tg: true },
-  { id: 'TX-9405', date: '2026-06-15', creator: 'Lara Veloso',   source: 'Privacy',                 sc: '#ff5a5f', gross:  75.00, pf: 0.042, fx: 0.02 },
-  { id: 'TX-9399', date: '2026-06-14', creator: 'Mia Castro',    source: 'OnlyFans',                sc: '#ec4899', gross: 120.00, pf: 0.039, fx: 0.02 },
-  { id: 'TX-9388', date: '2026-06-12', creator: 'Babi Barelli',  source: 'Telegram · Plano Mensal', sc: '#38bdf8', gross:  29.90, pf: 0.029, fx: 0.02, tg: true },
-  { id: 'TX-9377', date: '2026-06-10', creator: 'Lara Veloso',   source: 'Fanvue',                  sc: '#6d5dfc', gross:  60.00, pf: 0.045, fx: 0.02 },
-  { id: 'TX-9361', date: '2026-06-08', creator: 'Mia Castro',    source: 'OnlyFans',                sc: '#ec4899', gross: 200.00, pf: 0.039, fx: 0.02 },
-  { id: 'TX-9344', date: '2026-06-05', creator: 'Babi Barelli',  source: 'OnlyFans',                sc: '#ec4899', gross: 100.00, pf: 0.039, fx: 0.02 },
-  { id: 'TX-9320', date: '2026-06-02', creator: 'Lara Veloso',   source: 'Telegram · Plano VIP',    sc: '#38bdf8', gross:  49.90, pf: 0.029, fx: 0.02, tg: true },
-  { id: 'TX-9301', date: '2026-05-29', creator: 'Mia Castro',    source: 'Privacy',                 sc: '#ff5a5f', gross:  90.00, pf: 0.042, fx: 0.02 },
-  { id: 'TX-9288', date: '2026-05-25', creator: 'Babi Barelli',  source: 'OnlyFans',                sc: '#ec4899', gross: 150.00, pf: 0.039, fx: 0.02 },
-  { id: 'TX-9270', date: '2026-05-21', creator: 'Lara Veloso',   source: 'OnlyFans',                sc: '#ec4899', gross:  80.00, pf: 0.039, fx: 0.02 },
-]
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
-function parseISO(d: string) {
-  const p = d.split('-').map(Number)
-  return new Date(p[0]!, p[1]! - 1, p[2]!)
+function defaultRange(): DateRange {
+  const end = new Date()
+  const start = new Date(end)
+  start.setDate(start.getDate() - 29) // last 30 days, inclusive
+  return { start: toISO(start), end: toISO(end) }
 }
 
 type OnboardingStatus = { onboardingStep: number; selectedPlatforms: string[]; stripeMode: string | null; stripeOnboarded: boolean }
 
 export default function AdminPage() {
   const locale = useLocale()
-  const [range, setRange] = useState<DateRange>({ start: '2026-05-18', end: '2026-06-17' })
+  const [range, setRange] = useState<DateRange>(defaultRange)
 
   const { data: onboarding } = useQuery<OnboardingStatus>({
     queryKey: ['onboarding-status'],
     queryFn: () => fetch('/api/onboarding/status').then(r => r.json()),
   })
 
+  const { data: rows = [] } = useQuery<LedgerRow[]>({
+    queryKey: ['dashboard-transactions', range.start, range.end],
+    queryFn: () =>
+      fetch(`/api/dashboard/transactions?start=${range.start}&end=${range.end}`).then(r => r.json()),
+  })
+
   const showBanner = onboarding && onboarding.onboardingStep < 4
 
-  const rows = LEDGER.filter(t => {
-    const ts = parseISO(t.date).getTime()
-    return ts >= parseISO(range.start).getTime() && ts <= parseISO(range.end).getTime()
-  })
   const data = compute(rows)
 
   const handleExport = useCallback(() => {
@@ -130,13 +123,13 @@ export default function AdminPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
         <SourcesTable sources={data.sources} />
-        <WithdrawCard available={data.available} />
+        <WithdrawCard />
       </div>
 
       <TransactionsTable rows={rows} count={data.count} />
 
       <p className="text-center text-xs leading-relaxed text-muted-foreground">
-        Valores em USD convertidos para BRL no câmbio da liquidação. Taxas de IOF e Swift discriminadas conforme legislação vigente · relatório pronto para contabilidade.
+        Valores refletem o processado pelo Stripe na sua conta conectada · relatório pronto para contabilidade.
       </p>
     </div>
   )

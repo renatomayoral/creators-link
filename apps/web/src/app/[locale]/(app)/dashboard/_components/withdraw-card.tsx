@@ -1,31 +1,27 @@
 'use client'
 
+import { useLocale } from 'next-intl'
+import { useQuery } from '@tanstack/react-query'
 import { money } from './dashboard'
+import type { StripeBalanceResponse } from '@/app/api/dashboard/stripe-balance/route'
 
-type Props = { available: number }
+export function WithdrawCard() {
+  const locale = useLocale()
+  const { data: balance, isLoading } = useQuery<StripeBalanceResponse>({
+    queryKey: ['dashboard-stripe-balance'],
+    queryFn: () => fetch('/api/dashboard/stripe-balance').then(r => r.json()),
+  })
 
-// Simulates what would come from Stripe Connect API (account status + next payout)
-const MOCK_CONNECT = {
-  onboarded: true,
-  country: 'BR',
-  currency: 'BRL',
-  nextPayoutDate: '2026-06-20',
-  nextPayoutAmount: null as number | null, // null = Stripe hasn't scheduled yet
-  payoutsEnabled: true,
-  bankLast4: '4242',
-  bankName: 'Itaú Unibanco',
-}
+  if (isLoading) {
+    return (
+      <div className="flex flex-col rounded-[18px] border border-border bg-card p-5">
+        <div className="mb-1 text-[15px] font-bold">Recebimentos</div>
+        <div className="animate-pulse text-[12.5px] text-muted-foreground">Carregando…</div>
+      </div>
+    )
+  }
 
-function fmtDate(iso: string) {
-  const [y, m, d] = iso.split('-')
-  const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
-  return `${String(Number(d)).padStart(2,'0')} ${months[Number(m)! - 1]} ${y}`
-}
-
-export function WithdrawCard({ available }: Props) {
-  const { onboarded, payoutsEnabled, bankLast4, bankName, nextPayoutDate, country, currency } = MOCK_CONNECT
-
-  if (!onboarded) {
+  if (!balance?.onboarded) {
     return (
       <div className="flex flex-col rounded-[18px] border border-amber-500/25 bg-card p-5">
         <div className="mb-1 text-[15px] font-bold">Recebimentos</div>
@@ -38,13 +34,18 @@ export function WithdrawCard({ available }: Props) {
           </div>
         </div>
 
-        <button className="mt-auto flex items-center justify-center gap-2.5 rounded-xl bg-[#635BFF] py-3 text-[14px] font-bold text-white transition-opacity hover:opacity-90">
+        <a
+          href={`/${locale}/onboarding`}
+          className="mt-auto flex items-center justify-center gap-2.5 rounded-xl bg-[#635BFF] py-3 text-[14px] font-bold text-white transition-opacity hover:opacity-90"
+        >
           <StripeLogo />
           Conectar ao Stripe
-        </button>
+        </a>
       </div>
     )
   }
+
+  const { available, bankLast4, bankName } = balance
 
   return (
     <div className="flex flex-col rounded-[18px] border border-border bg-card p-5">
@@ -69,26 +70,21 @@ export function WithdrawCard({ available }: Props) {
       </div>
 
       {/* Conta bancária */}
-      <div className="mb-1 text-[12px] font-semibold text-muted-foreground">Conta cadastrada no Stripe</div>
-      <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8V6a5 5 0 0 1 10 0v2"/></svg>
-        <span className="text-[13px] font-medium">{bankName}</span>
-        <span className="text-[12px] text-muted-foreground">····{bankLast4}</span>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="text-[10.5px] font-bold text-muted-foreground">{country} · {currency}</span>
-        </div>
-      </div>
-
-      {/* Próximo payout */}
-      <div className="mb-4 flex items-center gap-1.5 rounded-lg bg-blue-500/8 px-3 py-2 text-[12px] text-muted-foreground">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Próximo depósito automático: <strong className="ml-1 text-foreground">{fmtDate(nextPayoutDate)}</strong>
-      </div>
+      {bankName && (
+        <>
+          <div className="mb-1 text-[12px] font-semibold text-muted-foreground">Conta cadastrada no Stripe</div>
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8V6a5 5 0 0 1 10 0v2"/></svg>
+            <span className="text-[13px] font-medium">{bankName}</span>
+            {bankLast4 && <span className="text-[12px] text-muted-foreground">····{bankLast4}</span>}
+          </div>
+        </>
+      )}
 
       {/* Saldo acumulado */}
       <div className="mt-auto rounded-xl bg-accent/40 p-4">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Acumulado no período</div>
-        <div className="text-[22px] font-black text-foreground">{money(available)}</div>
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Saldo disponível</div>
+        <div className="text-[22px] font-black text-foreground">{money(available ?? 0)}</div>
         <div className="mt-0.5 text-[11.5px] text-muted-foreground">Será depositado no próximo ciclo do Stripe</div>
       </div>
 

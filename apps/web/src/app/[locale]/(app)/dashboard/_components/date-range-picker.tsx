@@ -6,7 +6,11 @@ import { fmtFull } from './dashboard'
 
 type Props = { range: DateRange; onChange: (r: DateRange) => void }
 
-const TODAY = '2026-06-17'
+function todayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const TODAY = todayISO()
 const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const DOW_LABELS = ['D','S','T','Q','Q','S','S']
 
@@ -112,8 +116,9 @@ function MonthGrid({ year, month, start, end, onPick }: MonthGridProps) {
 
 export function DateRangePicker({ range, onChange }: Props) {
   const [open, setOpen] = useState(false)
-  const [rightYear, setRightYear] = useState(2026)
-  const [rightMonth, setRightMonth] = useState(5) // June (0-indexed)
+  const initialMonth = parseISO(range.end)
+  const [rightYear, setRightYear] = useState(initialMonth.getFullYear())
+  const [rightMonth, setRightMonth] = useState(initialMonth.getMonth())
   const [picking, setPicking] = useState<{ start: string | null; end: string | null }>({
     start: range.start,
     end: range.end,

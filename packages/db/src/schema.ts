@@ -1,4 +1,4 @@
-import { platform, creator, creatorLink, linkClick, vipPlan, vipPlanPrice, vipSubscription, platformToken } from './creators'
+import { platform, creator, creatorLink, linkClick, vipPlan, vipPlanPrice, vipSubscription, payment, platformToken } from './creators'
 import { pgTable, text, timestamp, boolean, integer, date, uniqueIndex } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -232,6 +232,7 @@ export const schema = {
   vipPlan,
   vipPlanPrice,
   vipSubscription,
+  payment,
   platformToken,
   user,
   session,

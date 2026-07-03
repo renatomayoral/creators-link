@@ -71,8 +71,6 @@ export function compute(rows: LedgerRow[]) {
 
   return {
     gross, pf, fx, net, count,
-    available: net * 0.62,
-    pending: net * 0.18,
     avg: gross / Math.max(1, count),
     chart,
     chartDays: days,

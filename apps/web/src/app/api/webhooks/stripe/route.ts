@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { constructWebhookEvent, getStripe, type Stripe } from '@repo/payments'
 
-const { vipSubscription } = schema
+const { vipSubscription, vipPlan, payment } = schema
 
 // Stripe needs the raw request body to verify the signature — never parse first.
 export async function POST(req: NextRequest) {
@@ -112,6 +112,57 @@ async function onInvoicePaid(invoice: Stripe.Invoice) {
       updatedAt: new Date(),
     })
     .where(eq(vipSubscription.stripeSubscriptionId, subscriptionId))
+
+  await recordPayment(invoice, subscriptionId)
+}
+
+// Persists a `payment` row for revenue reporting. Idempotent on
+// stripeInvoiceId, since Stripe can redeliver the same webhook event.
+async function recordPayment(invoice: Stripe.Invoice, subscriptionId: string) {
+  if (!invoice.id) return
+
+  const existing = await db.query.payment.findFirst({
+    where: eq(payment.stripeInvoiceId, invoice.id),
+  })
+  if (existing) return
+
+  const sub = await db.query.vipSubscription.findFirst({
+    where: eq(vipSubscription.stripeSubscriptionId, subscriptionId),
+  })
+  if (!sub) {
+    console.error(`invoice.paid for unknown subscription ${subscriptionId}`)
+    return
+  }
+
+  const plan = await db.query.vipPlan.findFirst({ where: eq(vipPlan.id, sub.planId) })
+
+  // Read the platform's application fee off the underlying charge, so the
+  // recorded fee always matches what Stripe actually withheld — not a
+  // recomputed guess that could drift from TAKE_RATE_BPS over time.
+  const chargeId = getInvoiceChargeId(invoice)
+  let providerFeeCents = 0
+  if (chargeId) {
+    const charge = await getStripe().charges.retrieve(chargeId)
+    providerFeeCents = charge.application_fee_amount ?? 0
+  }
+
+  await db.insert(payment).values({
+    id: randomUUID(),
+    creatorId: sub.creatorId,
+    vipSubscriptionId: sub.id,
+    fanEmail: sub.fanEmail,
+    provider: 'stripe',
+    source: plan ? `Telegram · ${plan.title}` : 'Telegram · VIP',
+    stripeInvoiceId: invoice.id,
+    currency: invoice.currency,
+    grossCents: invoice.amount_paid,
+    providerFeeCents,
+    fxFeeCents: 0,
+    status: 'paid',
+    createdAt: invoice.status_transitions?.paid_at
+      ? new Date(invoice.status_transitions.paid_at * 1000)
+      : new Date(),
+  })
 }
 
 async function onSubscriptionEnded(sub: Stripe.Subscription, status: 'canceled' | 'expired') {
@@ -140,6 +191,13 @@ async function onPaymentFailed(invoice: Stripe.Invoice) {
 // defensively from the invoice.
 function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   const raw = (invoice as unknown as { subscription?: string | { id: string } }).subscription
+  if (!raw) return null
+  return typeof raw === 'string' ? raw : raw.id
+}
+
+// The charge pointer similarly moved around across Stripe API versions.
+function getInvoiceChargeId(invoice: Stripe.Invoice): string | null {
+  const raw = (invoice as unknown as { charge?: string | { id: string } }).charge
   if (!raw) return null
   return typeof raw === 'string' ? raw : raw.id
 }

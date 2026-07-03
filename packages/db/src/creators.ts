@@ -271,6 +271,59 @@ export const vipSubscription = pgTable(
   ],
 )
 
+// ─── Payments — one row per confirmed charge (source of truth for revenue) ───
+// Written by payment-provider webhooks (Stripe `invoice.paid`, etc). This is
+// the only place revenue is persisted — vip_subscription only tracks current
+// access state, not payment history. Used to build the dashboard's revenue
+// chart, transactions table and per-source breakdown.
+
+export const payment = pgTable(
+  'payment',
+  {
+    id: text('id').primaryKey(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    /** Null when the charge isn't tied to a VIP plan (e.g. one-off checkout) */
+    vipSubscriptionId: text('vip_subscription_id').references(() => vipSubscription.id, {
+      onDelete: 'set null',
+    }),
+    /** Fan email, when available from the payment provider */
+    fanEmail: text('fan_email'),
+    /** Payment rail: 'stripe' | 'nowpayments' | 'pix_manual' */
+    provider: text('provider').notNull(),
+    /** Human label for the source column, e.g. "Telegram · Plano VIP", "OnlyFans" */
+    source: text('source').notNull(),
+    /** Stripe Invoice id — unique, used for webhook idempotency (stripe rail) */
+    stripeInvoiceId: text('stripe_invoice_id').unique(),
+    /** NOWPayments payment id — unique, used for webhook idempotency (crypto rail) */
+    nowpaymentsPaymentId: text('nowpayments_payment_id').unique(),
+    /** ISO 4217 lowercase, e.g. "brl", "usd" */
+    currency: text('currency').notNull(),
+    /** Gross amount charged, in the smallest currency unit (centavos / cents) */
+    grossCents: integer('gross_cents').notNull(),
+    /** Payment-provider processing fee (Stripe fee, etc), smallest unit */
+    providerFeeCents: integer('provider_fee_cents')
+      .$defaultFn(() => 0)
+      .notNull(),
+    /** FX/conversion fee (Swift/IOF on cross-currency settlement), smallest unit */
+    fxFeeCents: integer('fx_fee_cents')
+      .$defaultFn(() => 0)
+      .notNull(),
+    /** 'paid' | 'refunded' | 'failed' */
+    status: text('status')
+      .$defaultFn(() => 'paid')
+      .notNull(),
+    createdAt: timestamp('created_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    index('payment_creator_created_idx').on(t.creatorId, t.createdAt),
+    index('payment_vip_subscription_idx').on(t.vipSubscriptionId),
+  ],
+)
+
 // ─── Platform OAuth tokens — one row per creator per platform ─────────────────
 // Stores OAuth access/refresh tokens so the platform can call APIs on behalf
 // of each creator. Each row is keyed by (creatorId, platform).
