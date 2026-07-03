@@ -3,8 +3,9 @@ import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { constructWebhookEvent, getStripe, type Stripe } from '@repo/payments'
+import { sendCryptoAccessGranted, sendAccessExpired } from '@/lib/email'
 
-const { vipSubscription, vipPlan, payment } = schema
+const { vipSubscription, vipPlan, creator, payment } = schema
 
 // Stripe needs the raw request body to verify the signature — never parse first.
 export async function POST(req: NextRequest) {
@@ -69,17 +70,16 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session) {
   const periodEnd = sub.items.data[0]?.current_period_end ?? null
 
   // Idempotent: the same subscription id can arrive more than once.
+  const fanEmail = session.customer_details?.email ?? null
+  const currentPeriodEnd = periodEnd ? new Date(periodEnd * 1000) : null
+
   const existing = await db.query.vipSubscription.findFirst({
     where: eq(vipSubscription.stripeSubscriptionId, subscriptionId),
   })
   if (existing) {
     await db
       .update(vipSubscription)
-      .set({
-        status: 'active',
-        currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
-        updatedAt: new Date(),
-      })
+      .set({ status: 'active', currentPeriodEnd, updatedAt: new Date() })
       .where(eq(vipSubscription.id, existing.id))
     return
   }
@@ -88,15 +88,62 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session) {
     id: randomUUID(),
     creatorId,
     planId,
-    fanEmail: session.customer_details?.email ?? null,
+    fanEmail,
     provider: 'stripe',
     stripeSubscriptionId: subscriptionId,
     stripeCustomerId: typeof session.customer === 'string' ? session.customer : null,
     status: 'active',
-    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+    currentPeriodEnd,
   })
 
-  // TODO: grant access (Telegram VIP channel) once that integration lands.
+  await grantTelegramAccess({ creatorId, planId, fanEmail, periodEnd: currentPeriodEnd })
+}
+
+// Creates a single-use Telegram invite link for the creator's VIP channel and
+// emails it to the fan. Mirrors the same Bot API flow used by the NOWPayments
+// webhook (see apps/web/src/app/api/webhooks/nowpayments/route.ts).
+async function grantTelegramAccess(params: {
+  creatorId: string
+  planId: string
+  fanEmail: string | null
+  periodEnd: Date | null
+}) {
+  const botToken = process.env['TELEGRAM_BOT_TOKEN']
+  if (!botToken || !params.fanEmail) return
+
+  const c = await db.query.creator.findFirst({ where: eq(creator.id, params.creatorId) })
+  if (!c?.telegramChannelId) return
+
+  const plan = await db.query.vipPlan.findFirst({ where: eq(vipPlan.id, params.planId) })
+  const periodEnd = params.periodEnd ?? new Date(Date.now() + 30 * 86400_000)
+
+  try {
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: c.telegramChannelId,
+        member_limit: 1,
+        expire_date: Math.floor(periodEnd.getTime() / 1000),
+      }),
+    })
+    const tgData = await tgRes.json()
+    const inviteLink = tgData?.result?.invite_link
+    if (!inviteLink) {
+      console.error('[stripe webhook] createChatInviteLink returned no link', tgData)
+      return
+    }
+
+    await sendCryptoAccessGranted({
+      to: params.fanEmail,
+      creatorName: c.name,
+      planTitle: plan?.title ?? 'VIP',
+      inviteLink,
+      periodEnd,
+    })
+  } catch (err) {
+    console.error('[stripe webhook] failed to grant Telegram access:', err)
+  }
 }
 
 async function onInvoicePaid(invoice: Stripe.Invoice) {
@@ -171,7 +218,34 @@ async function onSubscriptionEnded(sub: Stripe.Subscription, status: 'canceled' 
     .set({ status, updatedAt: new Date() })
     .where(eq(vipSubscription.stripeSubscriptionId, sub.id))
 
-  // TODO: revoke access (remove from Telegram VIP channel).
+  await revokeTelegramAccess(sub.id)
+}
+
+// Sends the expiry email and logs the pending kick. Actually removing the fan
+// from the Telegram channel requires the fan's Telegram user_id, which isn't
+// captured anywhere yet (same gap as the NOWPayments webhook) — the invite
+// link is single-use and time-limited in the meantime, so no new fan can join
+// on it after expiry, but an already-joined fan isn't auto-kicked.
+async function revokeTelegramAccess(stripeSubscriptionId: string) {
+  const sub = await db.query.vipSubscription.findFirst({
+    where: eq(vipSubscription.stripeSubscriptionId, stripeSubscriptionId),
+  })
+  if (!sub?.fanEmail) return
+
+  const c = await db.query.creator.findFirst({ where: eq(creator.id, sub.creatorId) })
+  const plan = await db.query.vipPlan.findFirst({ where: eq(vipPlan.id, sub.planId) })
+  const appUrl = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000'
+
+  await sendAccessExpired({
+    to: sub.fanEmail,
+    creatorName: c?.name ?? '',
+    planTitle: plan?.title ?? 'VIP',
+    renewLink: `${appUrl}/p/${c?.slug ?? ''}`,
+  }).catch((err) => console.error('[stripe webhook] failed to send expiry email:', err))
+
+  if (c?.telegramChannelId) {
+    console.log('[stripe webhook] subscription ended — fan should be removed:', sub.fanEmail)
+  }
 }
 
 async function onPaymentFailed(invoice: Stripe.Invoice) {
