@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "node --env-file=../../.env --experimental-strip-types src/seed.ts",
     "lint": "tsc --noEmit",
     "check-types": "tsc --noEmit",
     "clean": "rm -rf dist"

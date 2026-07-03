@@ -105,8 +105,8 @@
   "faq": {
     "title": "Preguntas",
     "headline": "Preguntas frecuentes",
-    "q1": "¿Las páginas tienen verificación de edad?",
-    "a1": "Sí. Las páginas ya vienen con el sello 18+, vistas previas con candado y una tarjeta destacada para la suscripción — diseñadas para creadoras de contenido premium, respetando las reglas de cada plataforma.",
+    "q1": "¿Las páginas admiten contenido premium con vistas previas bloqueadas?",
+    "a1": "Sí. Las páginas ya vienen con vistas previas con candado y una tarjeta destacada para la suscripción — diseñadas para creadores de contenido premium, respetando las reglas de cada plataforma.",
     "q2": "¿Cómo funciona el seguimiento de clics?",
     "a2": "Cada botón de la página pasa por un enlace de redirección que registra el clic (creadora + plataforma) y luego lleva a la persona al destino real. Es instantáneo e invisible para quien hace clic.",
     "q3": "¿Cómo funcionan las ventas en Telegram?",

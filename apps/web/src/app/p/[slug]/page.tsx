@@ -230,19 +230,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ slug: 
           }))}
         />
 
-        <div
-          className="mt-9 flex items-center justify-center gap-2 text-[11px] font-semibold tracking-wider"
-          style={{ color: isLight ? '#71717a' : '#52525b' }}
-        >
-          <span
-            className="rounded-md border px-1.5 py-0.5"
-            style={{ borderColor: isLight ? '#d4d4d8' : '#3f3f46' }}
-          >
-            18+
-          </span>
-          <span>All content is intended for adults only</span>
-        </div>
-        <div className="mt-3.5 text-[11px]" style={{ color: isLight ? '#a1a1aa' : '#3f3f46' }}>
+        <div className="mt-9 text-[11px]" style={{ color: isLight ? '#a1a1aa' : '#3f3f46' }}>
           © {new Date().getFullYear()} {c.name}
         </div>
       </main>

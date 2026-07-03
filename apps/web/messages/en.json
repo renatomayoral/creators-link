@@ -105,8 +105,8 @@
   "faq": {
     "title": "FAQ",
     "headline": "Frequently asked questions",
-    "q1": "Do pages have age verification?",
-    "a1": "Yes. Pages come with an 18+ badge, locked previews, and a featured subscription card — built for premium content creators, respecting each platform's rules.",
+    "q1": "Do pages support premium content with locked previews?",
+    "a1": "Yes. Pages come with locked previews and a featured subscription card — built for premium content creators, respecting each platform's rules.",
     "q2": "How does click tracking work?",
     "a2": "Each button on the page goes through a redirect link that records the click (creator + platform) and then sends the person to the real destination. It's instant and invisible to the visitor.",
     "q3": "How do Telegram sales work?",

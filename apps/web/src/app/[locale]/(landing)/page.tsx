@@ -1791,16 +1791,6 @@ export default async function LandingPage({ params }: Props) {
             }}
           >
             <LocaleSwitcher />
-            <span
-              style={{
-                border: '1px solid #3f3f46',
-                borderRadius: 6,
-                padding: '2px 7px',
-                fontWeight: 600,
-              }}
-            >
-              18+
-            </span>
             <span>{t('footer.copyright')}</span>
           </div>
         </div>
