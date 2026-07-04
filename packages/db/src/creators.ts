@@ -210,11 +210,11 @@ export const vipPlanPrice = pgTable(
     currency: text('currency').notNull(),
     /** Amount in the smallest currency unit (centavos / cents) */
     amountCents: integer('amount_cents').notNull(),
-    /** Payment provider: stripe | pix_auto | pix_manual */
+    /** Payment provider: stripe | stripe_crypto | pix_auto | pix_manual | crypto | crypto_sub */
     provider: text('provider').notNull(),
-    /** Stripe Price id when provider = stripe */
+    /** Stripe Price id when provider = stripe (recurring subscription) */
     stripePriceId: text('stripe_price_id'),
-    /** NOWPayments subscription plan id when provider = crypto */
+    /** NOWPayments subscription plan id when provider = crypto_sub */
     nowpaymentsPlansId: text('nowpayments_plans_id'),
     active: boolean('active')
       .$defaultFn(() => true)

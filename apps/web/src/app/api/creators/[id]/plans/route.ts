@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 const priceSchema = z.object({
   currency: z.string().length(3).toLowerCase(),
   amountCents: z.number().int().min(100),
-  provider: z.enum(['stripe', 'pix_auto', 'pix_manual', 'crypto', 'crypto_sub']),
+  provider: z.enum(['stripe', 'stripe_crypto', 'pix_auto', 'pix_manual', 'crypto', 'crypto_sub']),
   nowpaymentsPlansId: z.string().optional(),
 })
 

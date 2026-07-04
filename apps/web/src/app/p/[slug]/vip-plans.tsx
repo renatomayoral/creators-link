@@ -29,6 +29,7 @@ function formatPrice(amountCents: number, currency: string) {
 
 const PROVIDER_LABELS: Record<string, string> = {
   stripe: 'Cartão',
+  stripe_crypto: 'Crypto',
   pix_auto: 'Pix',
   pix_manual: 'Pix',
 }
@@ -49,8 +50,9 @@ export function VipPlans({ plans, accent }: { plans: PublicVipPlan[]; accent: st
 
     setLoadingId(plan.id)
     try {
-      if (price.provider === 'stripe') {
-        const res = await fetch('/api/checkout', {
+      if (price.provider === 'stripe' || price.provider === 'stripe_crypto') {
+        const endpoint = price.provider === 'stripe' ? '/api/checkout' : '/api/checkout/crypto'
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ planId: plan.id, currency }),

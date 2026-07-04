@@ -17,11 +17,8 @@ type Mode = 'choose' | 'create' | 'connect'
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
 const PAYMENT_OPTIONS = [
-  { key: 'stripe',     label: 'Stripe',         desc: 'Cartão de crédito internacional (USD/EUR)', color: '#635bff' },
-  { key: 'pix_auto',  label: 'Pix Automático',  desc: 'Débito recorrente via C6 Bank (BRL)',        color: '#00c274' },
-  { key: 'pix_manual',label: 'Pix Manual',       desc: 'QR Code gerado a cada cobrança (BRL)',       color: '#00c274' },
-  { key: 'crypto',     label: 'Crypto (único)',    desc: 'Pagamento avulso — BTC, ETH, USDT e +100 via NowPayments', color: '#f7931a' },
-  { key: 'crypto_sub', label: 'Crypto (assinatura)', desc: 'Cobrança recorrente automática via NowPayments Subscriptions', color: '#e67e22' },
+  { key: 'stripe',        label: 'Stripe',        desc: 'Cartão de crédito internacional (USD/EUR), assinatura recorrente', color: '#635bff' },
+  { key: 'stripe_crypto', label: 'Stripe Crypto', desc: 'Stablecoins via Stripe — pagamento avulso por período',            color: '#f7931a' },
 ]
 
 const PIX_KEY_TYPES = [

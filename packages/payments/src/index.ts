@@ -13,12 +13,14 @@ export {
   createVipPrice,
   archiveVipPrice,
   createSubscriptionCheckout,
+  createCryptoPaymentCheckout,
 } from './stripe/connect'
 export type {
   CreateConnectedAccountParams,
   OnboardingLinkParams,
   CreateVipPriceParams,
   SubscriptionCheckoutParams,
+  CryptoPaymentCheckoutParams,
 } from './stripe/connect'
 export {
   constructWebhookEvent,

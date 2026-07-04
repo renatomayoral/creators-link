@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { constructWebhookEvent, getStripe, type Stripe } from '@repo/payments'
-import { sendCryptoAccessGranted, sendAccessExpired } from '@/lib/email'
+import { sendCryptoAccessGranted } from '@/lib/email'
+import { revokeTelegramAccessForSubscription } from '@/lib/telegram-access'
 
 const { vipSubscription, vipPlan, creator, payment } = schema
 
@@ -52,6 +53,10 @@ export async function POST(req: NextRequest) {
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 
 async function onCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (session.mode === 'payment') {
+    await onCryptoPaymentCompleted(session)
+    return
+  }
   if (session.mode !== 'subscription' || !session.subscription) return
 
   const meta = session.metadata ?? {}
@@ -146,6 +151,113 @@ async function grantTelegramAccess(params: {
   }
 }
 
+// Handles a one-time stablecoin payment (mode: 'payment'). There's no Stripe
+// Subscription object here, so the vip_subscription row is looked up/created
+// by (creatorId, planId, fanEmail) instead of a stripeSubscriptionId, and
+// each payment extends currentPeriodEnd by the plan's interval.
+async function onCryptoPaymentCompleted(session: Stripe.Checkout.Session) {
+  const meta = session.metadata ?? {}
+  const creatorId = meta['creatorId']
+  const planId = meta['planId']
+  const fanEmail = session.customer_details?.email ?? null
+  if (!creatorId || !planId) {
+    console.error('checkout.session.completed (payment) missing creatorId/planId metadata')
+    return
+  }
+  if (!fanEmail) {
+    console.error('checkout.session.completed (payment) missing fan email')
+    return
+  }
+
+  const plan = await db.query.vipPlan.findFirst({ where: eq(vipPlan.id, planId) })
+  const intervalMs = (plan?.intervalDay ?? 30) * 86400_000
+  const currentPeriodEnd = new Date(Date.now() + intervalMs)
+
+  const existing = await db.query.vipSubscription.findFirst({
+    where: and(
+      eq(vipSubscription.creatorId, creatorId),
+      eq(vipSubscription.planId, planId),
+      eq(vipSubscription.fanEmail, fanEmail),
+      eq(vipSubscription.provider, 'stripe_crypto'),
+    ),
+  })
+
+  let subId: string
+  if (existing) {
+    subId = existing.id
+    await db
+      .update(vipSubscription)
+      .set({ status: 'active', currentPeriodEnd, updatedAt: new Date() })
+      .where(eq(vipSubscription.id, existing.id))
+  } else {
+    subId = randomUUID()
+    await db.insert(vipSubscription).values({
+      id: subId,
+      creatorId,
+      planId,
+      fanEmail,
+      provider: 'stripe_crypto',
+      status: 'active',
+      currentPeriodEnd,
+    })
+  }
+
+  await recordCryptoPayment({ session, creatorId, vipSubscriptionId: subId, fanEmail, plan })
+  await grantTelegramAccess({ creatorId, planId, fanEmail, periodEnd: currentPeriodEnd })
+}
+
+// Persists a `payment` row for a one-time crypto payment. Idempotent on the
+// underlying PaymentIntent id (stored in stripeInvoiceId — there's no
+// invoice for mode: 'payment' sessions, but the column just needs a unique
+// Stripe reference to dedupe on).
+async function recordCryptoPayment(params: {
+  session: Stripe.Checkout.Session
+  creatorId: string
+  vipSubscriptionId: string
+  fanEmail: string
+  plan: { title: string } | undefined
+}) {
+  const paymentIntentId =
+    typeof params.session.payment_intent === 'string'
+      ? params.session.payment_intent
+      : params.session.payment_intent?.id
+  if (!paymentIntentId) return
+
+  const existing = await db.query.payment.findFirst({
+    where: eq(payment.stripeInvoiceId, paymentIntentId),
+  })
+  if (existing) return
+
+  let providerFeeCents = 0
+  try {
+    const pi = await getStripe().paymentIntents.retrieve(paymentIntentId)
+    const chargeId =
+      typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge?.id
+    if (chargeId) {
+      const charge = await getStripe().charges.retrieve(chargeId)
+      providerFeeCents = charge.application_fee_amount ?? 0
+    }
+  } catch (err) {
+    console.error('[stripe webhook] failed to read crypto payment fee:', err)
+  }
+
+  await db.insert(payment).values({
+    id: randomUUID(),
+    creatorId: params.creatorId,
+    vipSubscriptionId: params.vipSubscriptionId,
+    fanEmail: params.fanEmail,
+    provider: 'stripe_crypto',
+    source: params.plan ? `Telegram · ${params.plan.title}` : 'Telegram · VIP',
+    stripeInvoiceId: paymentIntentId,
+    currency: params.session.currency ?? 'usd',
+    grossCents: params.session.amount_total ?? 0,
+    providerFeeCents,
+    fxFeeCents: 0,
+    status: 'paid',
+    createdAt: new Date(),
+  })
+}
+
 async function onInvoicePaid(invoice: Stripe.Invoice) {
   const subscriptionId = getInvoiceSubscriptionId(invoice)
   if (!subscriptionId) return
@@ -213,39 +325,17 @@ async function recordPayment(invoice: Stripe.Invoice, subscriptionId: string) {
 }
 
 async function onSubscriptionEnded(sub: Stripe.Subscription, status: 'canceled' | 'expired') {
+  const existing = await db.query.vipSubscription.findFirst({
+    where: eq(vipSubscription.stripeSubscriptionId, sub.id),
+  })
+  if (!existing) return
+
   await db
     .update(vipSubscription)
     .set({ status, updatedAt: new Date() })
-    .where(eq(vipSubscription.stripeSubscriptionId, sub.id))
+    .where(eq(vipSubscription.id, existing.id))
 
-  await revokeTelegramAccess(sub.id)
-}
-
-// Sends the expiry email and logs the pending kick. Actually removing the fan
-// from the Telegram channel requires the fan's Telegram user_id, which isn't
-// captured anywhere yet (same gap as the NOWPayments webhook) — the invite
-// link is single-use and time-limited in the meantime, so no new fan can join
-// on it after expiry, but an already-joined fan isn't auto-kicked.
-async function revokeTelegramAccess(stripeSubscriptionId: string) {
-  const sub = await db.query.vipSubscription.findFirst({
-    where: eq(vipSubscription.stripeSubscriptionId, stripeSubscriptionId),
-  })
-  if (!sub?.fanEmail) return
-
-  const c = await db.query.creator.findFirst({ where: eq(creator.id, sub.creatorId) })
-  const plan = await db.query.vipPlan.findFirst({ where: eq(vipPlan.id, sub.planId) })
-  const appUrl = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000'
-
-  await sendAccessExpired({
-    to: sub.fanEmail,
-    creatorName: c?.name ?? '',
-    planTitle: plan?.title ?? 'VIP',
-    renewLink: `${appUrl}/p/${c?.slug ?? ''}`,
-  }).catch((err) => console.error('[stripe webhook] failed to send expiry email:', err))
-
-  if (c?.telegramChannelId) {
-    console.log('[stripe webhook] subscription ended — fan should be removed:', sub.fanEmail)
-  }
+  await revokeTelegramAccessForSubscription(existing.id)
 }
 
 async function onPaymentFailed(invoice: Stripe.Invoice) {

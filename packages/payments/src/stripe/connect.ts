@@ -149,3 +149,58 @@ export async function createSubscriptionCheckout(
     cancel_url: params.cancelUrl,
   })
 }
+
+export type CryptoPaymentCheckoutParams = {
+  /** Connected account of the creator receiving the money. */
+  creatorAccountId: string
+  /** The creator's platform plan — decides the application-fee percent. */
+  creatorPlatformPlan: string
+  title: string
+  /** Amount in the smallest currency unit (cents). */
+  amount: number
+  /** ISO 4217, e.g. 'usd'. Stripe crypto payments currently require USD. */
+  currency: string
+  /** Internal reference (plan/creator/fan ids). */
+  metadata?: Record<string, string>
+  successUrl: string
+  cancelUrl: string
+  customerEmail?: string
+}
+
+/**
+ * Creates a one-time Checkout Session paid with stablecoins.
+ *
+ * Stripe crypto payments don't support `mode: 'subscription'` — each billing
+ * period is a separate one-time payment. Access is granted for the plan's
+ * interval and the fan is emailed a renewal link before it expires (see the
+ * crypto-renewal-reminder cron).
+ */
+export async function createCryptoPaymentCheckout(
+  params: CryptoPaymentCheckoutParams,
+): Promise<Stripe.Checkout.Session> {
+  const feePercent = takeRatePercent(params.creatorPlatformPlan)
+  const applicationFeeAmount = Math.round(params.amount * (feePercent / 100))
+  return getStripe().checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['crypto'],
+    line_items: [
+      {
+        price_data: {
+          currency: params.currency,
+          unit_amount: params.amount,
+          product_data: { name: params.title },
+        },
+        quantity: 1,
+      },
+    ],
+    customer_email: params.customerEmail,
+    payment_intent_data: {
+      application_fee_amount: applicationFeeAmount,
+      transfer_data: { destination: params.creatorAccountId },
+      metadata: params.metadata ?? {},
+    },
+    metadata: params.metadata ?? {},
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+  })
+}
