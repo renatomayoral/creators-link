@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, Globe, Loader2 } from 'lucide-react'
+import { Check, Globe, Loader2, FileText } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Input } from '@repo/ui/components/input'
+import { Textarea } from '@repo/ui/components/textarea'
 import { Button } from '@repo/ui/components/button'
 import { useToast } from '@repo/ui/hooks/use-toast'
 import { type CreatorDetail } from '@/lib/creators'
@@ -16,12 +17,34 @@ import { PatreonConnect } from './patreon-connect'
 
 type Props = { detail: CreatorDetail }
 
+const BIO_MAX = 280
+
 export function TabSettings({ detail }: Props) {
   const t = useTranslations()
   const qc = useQueryClient()
   const { toast } = useToast()
   const [domainInput, setDomainInput] = useState(detail.customDomain ?? '')
   const [domainSaving, setDomainSaving] = useState(false)
+  const [bioInput, setBioInput] = useState(detail.bio ?? '')
+  const [bioSaving, setBioSaving] = useState(false)
+
+  async function saveBio() {
+    setBioSaving(true)
+    try {
+      const res = await fetch(`/api/creators/${detail.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ bio: bioInput.trim() || null }),
+      })
+      if (!res.ok) throw new Error('Erro ao salvar descrição')
+      toast({ title: 'Descrição salva!' })
+      void qc.invalidateQueries({ queryKey: ['creator', detail.id] })
+    } catch (e) {
+      toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' })
+    } finally {
+      setBioSaving(false)
+    }
+  }
 
   async function saveDomain() {
     setDomainSaving(true)
@@ -49,6 +72,48 @@ export function TabSettings({ detail }: Props) {
 
   return (
     <div className="divide-y">
+      {/* Bio / description */}
+      <section className="px-5 py-4" aria-labelledby="bio-heading">
+        <div className="mb-3 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <h2 id="bio-heading" className="text-[14px] font-semibold">
+            Descrição
+          </h2>
+        </div>
+        <p className="mb-3 text-[12.5px] text-muted-foreground">
+          Aparece na página pública, abaixo do nome. Emojis são bem-vindos 🔥
+        </p>
+        <label htmlFor="bio-textarea" className="sr-only">
+          Descrição da página pública
+        </label>
+        <Textarea
+          id="bio-textarea"
+          value={bioInput}
+          onChange={(e) => setBioInput(e.target.value.slice(0, BIO_MAX))}
+          placeholder="Brazilian model & digital creator. Exclusive photos, videos & AI art — everything below 🔥"
+          rows={3}
+          className="resize-none text-[13.5px]"
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">
+            {bioInput.length}/{BIO_MAX}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={saveBio}
+            disabled={bioSaving || bioInput === (detail.bio ?? '')}
+            aria-label="Salvar descrição"
+          >
+            {bioSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-label="Salvando…" />
+            ) : (
+              t('creators.save')
+            )}
+          </Button>
+        </div>
+      </section>
+
       {/* Custom domain */}
       <section className="px-5 py-4" aria-labelledby="domain-heading">
         <div className="mb-3 flex items-center gap-2">

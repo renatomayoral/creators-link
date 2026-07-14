@@ -103,14 +103,14 @@ export function PublicProfileView({ creator: c, links, plans, cfg, mode = 'live'
           )}
         </div>
 
-        <h1 className="mt-5 inline-flex items-center gap-2 text-[28px] font-black tracking-tight">
+        <h1 className="mt-5 flex items-center justify-center gap-2 text-[28px] font-black tracking-tight">
           <span style={{ color: cfg.textColor }}>{c.name}</span>
           <VerifiedBadge color={accent} />
         </h1>
 
         {c.handle && (
           <div
-            className="mt-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold"
+            className="mt-2.5 flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold mx-auto"
             style={{
               background: `${accent}1a`,
               border: `1px solid ${accent}4d`,
@@ -159,14 +159,25 @@ export function PublicProfileView({ creator: c, links, plans, cfg, mode = 'live'
                 <PlatformLogo platform={l.platform} size={40} />
                 <span className="flex-1 text-[15px] font-bold">{label}</span>
                 <span
-                  className="px-3 py-1 text-[11px] font-extrabold tracking-wide"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center"
                   style={{
                     background: accent,
-                    color: isLight ? '#fff' : '#0a0a0c',
                     borderRadius: btnRadius,
                   }}
                 >
-                  ABRIR
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke={isLight ? '#fff' : '#0a0a0c'}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
                 </span>
               </a>
             )

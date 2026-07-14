@@ -2,69 +2,29 @@ import type { SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
 
-export function OnlyFansLogo({ size = 24, ...props }: IconProps) {
+function LogoImage({ src, alt, size }: { src: string; alt: string; size: number }) {
   return (
-    <svg
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-label="OnlyFans"
-      {...props}
-    >
-      {/* OF wordmark — simplified circular OF icon */}
-      <circle cx="12" cy="12" r="12" fill="#00AFF0" />
-      <path
-        d="M12 5.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"
-        fill="white"
-      />
-      <path
-        d="M10.2 9.8h1.6v4.4h-1.6V9.8zm2.4 0h1.6c.88 0 1.6.72 1.6 1.6v1.2c0 .88-.72 1.6-1.6 1.6h-1.6V9.8zm1.6 1.4h-.2v1.8h.2c.22 0 .4-.18.4-.4v-1c0-.22-.18-.4-.4-.4z"
-        fill="white"
-      />
-    </svg>
+      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: size * 0.12 }}
+    />
   )
 }
 
-export function FanslyLogo({ size = 24, ...props }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-label="Fansly"
-      {...props}
-    >
-      <rect width="24" height="24" rx="6" fill="#1DA1F2" />
-      {/* Fansly "F" stylised */}
-      <path
-        d="M7 6h7.5v2.2H9.2v2.6h4.8v2.2H9.2V18H7V6z"
-        fill="white"
-      />
-      <circle cx="16.5" cy="7.5" r="1.5" fill="#FF6B9D" />
-    </svg>
-  )
+export function OnlyFansLogo({ size = 24 }: IconProps) {
+  return <LogoImage src="/assets/onlyfans.svg" alt="OnlyFans" size={size} />
 }
 
-export function FanvueLogo({ size = 24, ...props }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-label="Fanvue"
-      {...props}
-    >
-      <rect width="24" height="24" rx="6" fill="#6D5DFC" />
-      {/* Stylised "V" for Fanvue */}
-      <path
-        d="M5 6.5l4.5 11 2.5-6.5 2.5 6.5L19 6.5h-2.3L14.5 13l-2.5-6.5-2.5 6.5L7.3 6.5H5z"
-        fill="white"
-      />
-    </svg>
-  )
+export function FanslyLogo({ size = 24 }: IconProps) {
+  return <LogoImage src="/assets/fansly-seeklogo.svg" alt="Fansly" size={size} />
+}
+
+export function FanvueLogo({ size = 24 }: IconProps) {
+  return <LogoImage src="/assets/Fanvue_iduUPJJtC-_0.png" alt="Fanvue" size={size} />
 }
 
 export function InstagramLogo({ size = 24, ...props }: IconProps) {
@@ -156,32 +116,8 @@ export function PatreonLogo({ size = 24, ...props }: IconProps) {
   )
 }
 
-export function PrivacyLogo({ size = 24, ...props }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-label="Privacy"
-      {...props}
-    >
-      <rect width="24" height="24" rx="6" fill="#FF5A5F" />
-      {/* Shield shape */}
-      <path
-        d="M12 3.5L6 6v5c0 3.5 2.6 6.7 6 7.5 3.4-.8 6-4 6-7.5V6l-6-2.5z"
-        fill="white"
-        opacity="0.9"
-      />
-      <path
-        d="M10 11.5l1.5 1.5 3-3"
-        stroke="#FF5A5F"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
+export function PrivacyLogo({ size = 24 }: IconProps) {
+  return <LogoImage src="/assets/privacy.png" alt="Privacy" size={size} />
 }
 
 // ─── Lookup by platform key ───────────────────────────────────────────────────
