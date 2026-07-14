@@ -2,11 +2,15 @@
 
 import { useState, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ExternalLink, Palette } from 'lucide-react'
+import { Check, ExternalLink, Palette, Smartphone, Monitor } from 'lucide-react'
 import { PAGE_TEMPLATES, resolveConfig, type PageConfig } from '@/lib/page-templates'
+import { PublicProfileView, type PublicProfileLink } from '@/components/public-profile-view'
+import type { PublicVipPlan } from '@/app/p/[slug]/vip-plans'
+import type { CreatorDetail } from '@/lib/creators'
 
-type Props = { creatorId: string; slug: string }
+type Props = { creatorId: string; slug: string; creator: CreatorDetail }
 type DesignState = { pageTemplate: string; pageConfig: Partial<PageConfig> | null }
+type PreviewMode = 'mobile' | 'desktop'
 
 const COLOR_FIELDS: { key: keyof PageConfig; label: string }[] = [
   { key: 'accentColor', label: 'Cor de destaque' },
@@ -29,20 +33,33 @@ const BUTTON_STYLES = [
   { value: 'sharp', label: 'Reto' },
 ] as const
 
-export function TabPageDesign({ creatorId, slug }: Props) {
+export function TabPageDesign({ creatorId, slug, creator }: Props) {
   const qc = useQueryClient()
   const [saved, setSaved] = useState(false)
   const [localTemplate, setLocalTemplate] = useState<string | null>(null)
   const [localConfig, setLocalConfig] = useState<Partial<PageConfig> | null>(null)
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('mobile')
 
   const { data, isLoading } = useQuery<DesignState>({
     queryKey: ['page-design', creatorId],
     queryFn: () => fetch(`/api/creators/${creatorId}/page-design`).then((r) => r.json()),
   })
 
+  const { data: plans = [] } = useQuery<PublicVipPlan[]>({
+    queryKey: ['creator-plans', creatorId],
+    queryFn: () => fetch(`/api/creators/${creatorId}/plans`).then((r) => r.json()),
+  })
+
   const activeTemplate = localTemplate ?? data?.pageTemplate ?? 'neon-dark'
   const activeOverrides = localConfig ?? data?.pageConfig ?? null
   const resolved = resolveConfig(activeTemplate, activeOverrides)
+
+  const previewLinks: PublicProfileLink[] = creator.links.map((l) => ({
+    id: l.id,
+    platform: l.platform,
+    label: l.label,
+    url: l.url,
+  }))
 
   const mutation = useMutation({
     mutationFn: (body: Partial<DesignState>) =>
@@ -77,7 +94,8 @@ export function TabPageDesign({ creatorId, slug }: Props) {
   }
 
   return (
-    <div className="divide-y">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px]">
+    <div className="divide-y lg:border-r">
       {/* Header bar */}
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
@@ -92,7 +110,7 @@ export function TabPageDesign({ creatorId, slug }: Props) {
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            Pré-visualizar
+            Abrir página
           </a>
           <button
             onClick={handleSave}
@@ -287,6 +305,62 @@ export function TabPageDesign({ creatorId, slug }: Props) {
           </div>
         </div>
       </section>
+    </div>
+
+    {/* Live preview column */}
+    <div className="flex flex-col items-center gap-3 bg-muted/30 px-4 py-5">
+      <div className="flex items-center gap-1 rounded-lg border bg-background p-0.5" role="group" aria-label="Modo de pré-visualização">
+        <button
+          onClick={() => setPreviewMode('mobile')}
+          aria-pressed={previewMode === 'mobile'}
+          className={[
+            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            previewMode === 'mobile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+          ].join(' ')}
+        >
+          <Smartphone className="h-3.5 w-3.5" aria-hidden="true" />
+          Mobile
+        </button>
+        <button
+          onClick={() => setPreviewMode('desktop')}
+          aria-pressed={previewMode === 'desktop'}
+          className={[
+            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            previewMode === 'desktop' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+          ].join(' ')}
+        >
+          <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
+          Desktop
+        </button>
+      </div>
+
+      <div
+        className={[
+          'overflow-hidden bg-black shadow-xl transition-all',
+          previewMode === 'mobile'
+            ? 'h-152.5 w-[375px] max-w-full rounded-[2.5rem] border-8 border-neutral-800'
+            : 'h-152.5 w-full rounded-2xl border',
+        ].join(' ')}
+      >
+        <div className="h-full w-full overflow-y-auto">
+          <PublicProfileView
+            mode="preview"
+            cfg={resolved}
+            creator={{
+              name: creator.name,
+              handle: creator.handle,
+              bio: creator.bio,
+              avatarUrl: creator.avatarUrl,
+            }}
+            links={previewLinks}
+            plans={plans}
+          />
+        </div>
+      </div>
+      <p className="text-center text-[11px] text-muted-foreground">
+        Pré-visualização ao vivo — os links não são clicáveis aqui.
+      </p>
+    </div>
     </div>
   )
 }

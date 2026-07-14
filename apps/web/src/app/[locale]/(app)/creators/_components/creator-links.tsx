@@ -3,8 +3,22 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Input } from '@repo/ui/components/input'
-import { platformMeta } from '@/lib/creators'
 import type { CreatorLinkStat } from '@/lib/creators'
 import { PlatformLogo } from '@/components/platform-logos'
 
@@ -20,6 +34,9 @@ export function CreatorLinks({ creatorId, links }: Props) {
   const [adding, setAdding] = useState(false)
   const [newPlatform, setNewPlatform] = useState('')
   const [newUrl, setNewUrl] = useState('')
+  // Optimistic local order — mirrors `links` until a drag reorders it, then
+  // takes over until the invalidated query brings back the persisted order.
+  const [order, setOrder] = useState<string[] | null>(null)
 
   const { data: platforms = [] } = useQuery<Platform[]>({
     queryKey: ['platforms'],
@@ -27,7 +44,38 @@ export function CreatorLinks({ creatorId, links }: Props) {
     staleTime: 60_000,
   })
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['creator', creatorId] })
+  const invalidate = () => {
+    setOrder(null)
+    qc.invalidateQueries({ queryKey: ['creator', creatorId] })
+  }
+
+  const reorderLinks = useMutation({
+    mutationFn: (linkIds: string[]) =>
+      fetch(`/api/creators/${creatorId}/links/reorder`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ order: linkIds }),
+      }),
+    onSuccess: invalidate,
+    onError: () => setOrder(null),
+  })
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const orderedLinks = order
+    ? (order.map((id) => links.find((l) => l.id === id)).filter(Boolean) as CreatorLinkStat[])
+    : links
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const ids = orderedLinks.map((l) => l.id)
+    const oldIndex = ids.indexOf(String(active.id))
+    const newIndex = ids.indexOf(String(over.id))
+    if (oldIndex === -1 || newIndex === -1) return
+    const next = arrayMove(ids, oldIndex, newIndex)
+    setOrder(next)
+    reorderLinks.mutate(next)
+  }
 
   const addLink = useMutation({
     mutationFn: () =>
@@ -85,15 +133,19 @@ export function CreatorLinks({ creatorId, links }: Props) {
       </div>
 
       <div className="space-y-2">
-        {links.map((link) => (
-          <LinkRow
-            key={link.id}
-            link={link}
-            onSaveUrl={(url) => patchLink.mutate({ linkId: link.id, data: { url } })}
-            onToggleActive={() => patchLink.mutate({ linkId: link.id, data: { active: !(link as unknown as { active?: boolean }).active } })}
-            onRemove={() => removeLink.mutate(link.id)}
-          />
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedLinks.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+            {orderedLinks.map((link) => (
+              <LinkRow
+                key={link.id}
+                link={link}
+                onSaveUrl={(url) => patchLink.mutate({ linkId: link.id, data: { url } })}
+                onToggleActive={() => patchLink.mutate({ linkId: link.id, data: { active: !(link as unknown as { active?: boolean }).active } })}
+                onRemove={() => removeLink.mutate(link.id)}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
 
         {links.length === 0 && !adding && (
           <p className="py-4 text-center text-[12.5px] text-muted-foreground">
@@ -161,11 +213,29 @@ function LinkRow({
   onRemove: () => void
 }) {
   const [url, setUrl] = useState(link.url)
-  const meta = platformMeta(link.platform)
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: link.id,
+  })
 
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-background px-3 py-2.5">
-      <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/40" aria-hidden="true" />
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      className="flex items-center gap-2.5 rounded-xl border border-border bg-background px-3 py-2.5"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Reordenar link ${link.label}`}
+        className="shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
+      </button>
       <PlatformLogo platform={link.platform} size={22}  />
       <span className="w-24 shrink-0 text-[12.5px] font-semibold">{link.label}</span>
       <Input

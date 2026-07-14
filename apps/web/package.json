@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@better-auth/stripe": "^1.6.23",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.4.0",
     "@mtkruto/node": "^0.205.0",
     "@nowpaymentsio/nowpayments-api-js": "^1.0.5",

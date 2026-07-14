@@ -194,7 +194,7 @@ export default function CreatorDetailPage() {
           aria-labelledby="tab-design"
           hidden={activeTab !== 'design'}
         >
-          {activeTab === 'design' && <TabPageDesign creatorId={detail.id} slug={detail.slug} />}
+          {activeTab === 'design' && <TabPageDesign creatorId={detail.id} slug={detail.slug} creator={detail} />}
         </div>
         <div
           id="tabpanel-monetization"
