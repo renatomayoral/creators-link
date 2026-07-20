@@ -6,7 +6,7 @@ steps:
       - 'DOCKER_BUILDKIT=1'
     args:
       - build
-      - '--file=apps/web/Dockerfile'
+      - '--file=Dockerfile'
       - '--tag=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/web:$SHORT_SHA'
       - '--tag=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/web:latest'
       - '--cache-from=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/web:latest'
@@ -30,12 +30,11 @@ steps:
     args:
       - run
       - deploy
-      - creators-link-web
+      - creatorslink
       - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/web:$SHORT_SHA'
       - '--region=us-central1'
       - '--platform=managed'
       - '--service-account=cloudrun-web@$PROJECT_ID.iam.gserviceaccount.com'
-      - '--add-cloudsql-instances=$PROJECT_ID:us-central1:creators-link'
       - '--min-instances=0'
       - '--max-instances=3'
       - '--memory=512Mi'
@@ -44,9 +43,9 @@ steps:
       - '--timeout=60s'
       - '--allow-unauthenticated'
       - >-
-        --set-env-vars=NODE_ENV=production,GCP_PROJECT=$PROJECT_ID,GCP_ZONE=us-central1-f,GCP_INSTANCE_NAME=creators-link-vm,GCS_BUCKET=mktia-ai-studio-outputs,CLOUD_PROVIDER=gcp
+        --set-env-vars=NODE_ENV=production,NEXT_PUBLIC_APP_DOMAIN=creatorslink.org,NEXT_PUBLIC_APP_URL=https://creatorslink.org,BETTER_AUTH_URL=https://creatorslink.org,GCP_PROJECT=$PROJECT_ID,GCP_ZONE=us-central1-f,GCS_BUCKET=mktia-ai-studio-outputs,CLOUD_PROVIDER=gcp
       - >-
-        --set-secrets=BETTER_AUTH_SECRET=better-auth-secret:latest,BETTER_AUTH_URL=better-auth-url:latest,NEXT_PUBLIC_APP_URL=better-auth-url:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest,DATABASE_URL=database-url:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest
+        --set-secrets=DATABASE_URL=DATABASE_URL:latest,BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,STRIPE_PRICE_SPARK=STRIPE_PRICE_SPARK:latest,STRIPE_PRICE_CREATOR=STRIPE_PRICE_CREATOR:latest,STRIPE_PRICE_PRO=STRIPE_PRICE_PRO:latest
 
 options:
   machineType: E2_HIGHCPU_8
@@ -58,4 +57,3 @@ timeout: 1200s
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/web:$SHORT_SHA'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/web:latest'
-
