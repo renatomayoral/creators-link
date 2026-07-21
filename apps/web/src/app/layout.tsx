@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://creators-link.com'),
+  metadataBase: new URL('https://creatorslink.org'),
   title: {
     default: 'Creators Link — Link na bio + analytics para criadoras',
     template: '%s | Creators Link',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    url: 'https://creators-link.com',
+    url: 'https://creatorslink.org',
     siteName: 'Creators Link',
     title: 'Creators Link — Link na bio + analytics para criadoras',
     description:
