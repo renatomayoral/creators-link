@@ -24,6 +24,7 @@
     "@repo/shared": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
+    "@web3icons/react": "^4.1.19",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.24.0",

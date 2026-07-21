@@ -1,29 +1,73 @@
-// Catalog of coin/chain combinations creators can accept crypto payments in.
-// Each entry's `chainId` must match a chain enabled on the platform's own
-// BoomFi settlement account (see /api/boomfi/settlement-chains, backed by
-// GET /v1/accounts) — otherwise the deposit_split's platform-fee leg has
-// nowhere to settle to. chainId values below confirmed against the live
-// BoomFi account on 2026-07-21.
-export type CryptoCoin = {
-  key: string
-  label: string
-  ticker: string
+// Catalog of chains + coins creators can accept crypto payments in, mirroring
+// the BoomFi dashboard's "Crypto settlement" layout (one card per chain, with
+// a currency checklist). Each `chainId` must match a chain enabled on the
+// platform's own BoomFi settlement account (see /api/boomfi/settlement-chains,
+// backed by GET /v1/accounts) — otherwise the platform has no matching
+// settlement account for that chain. chainId values confirmed against the
+// live BoomFi account on 2026-07-21.
+export type CryptoChain = {
   chainId: number
-  chainLabel: string
+  /** @web3icons/react network `id` — Solana has no EVM chainId, so icon lookup needs its own id */
+  iconId: string
+  label: string
+  coins: Array<{ key: string; ticker: string }>
 }
 
-export const CRYPTO_COINS: CryptoCoin[] = [
-  { key: 'usdc-solana', label: 'USDC (Solana)', ticker: 'usdc', chainId: 1399811149, chainLabel: 'Solana' },
-  { key: 'usdt-solana', label: 'USDT (Solana)', ticker: 'usdt', chainId: 1399811149, chainLabel: 'Solana' },
-  { key: 'usdt-polygon', label: 'USDT (Polygon)', ticker: 'usdt', chainId: 137, chainLabel: 'Polygon' },
-  { key: 'usdc-polygon', label: 'USDC (Polygon)', ticker: 'usdc', chainId: 137, chainLabel: 'Polygon' },
-  { key: 'usdc-base', label: 'USDC (Base)', ticker: 'usdc', chainId: 8453, chainLabel: 'Base' },
-  { key: 'usdt-bsc', label: 'USDT (BNB Smart Chain)', ticker: 'usdt', chainId: 56, chainLabel: 'BNB Smart Chain' },
-  { key: 'usdc-bsc', label: 'USDC (BNB Smart Chain)', ticker: 'usdc', chainId: 56, chainLabel: 'BNB Smart Chain' },
-  { key: 'usdc-arbitrum', label: 'USDC (Arbitrum)', ticker: 'usdc', chainId: 42161, chainLabel: 'Arbitrum' },
-  { key: 'usdt-arbitrum', label: 'USDT (Arbitrum)', ticker: 'usdt', chainId: 42161, chainLabel: 'Arbitrum' },
+export const CRYPTO_CHAINS: CryptoChain[] = [
+  {
+    chainId: 137,
+    iconId: 'polygon',
+    label: 'Polygon',
+    coins: [
+      { key: 'usdc-polygon', ticker: 'USDC' },
+      { key: 'usdt-polygon', ticker: 'USDT' },
+    ],
+  },
+  {
+    chainId: 42161,
+    iconId: 'arbitrum-one',
+    label: 'Arbitrum',
+    coins: [
+      { key: 'usdc-arbitrum', ticker: 'USDC' },
+      { key: 'usdt-arbitrum', ticker: 'USDT' },
+    ],
+  },
+  {
+    chainId: 1399811149,
+    iconId: 'solana',
+    label: 'Solana',
+    coins: [
+      { key: 'usdc-solana', ticker: 'USDC' },
+      { key: 'usdt-solana', ticker: 'USDT' },
+    ],
+  },
+  {
+    chainId: 56,
+    iconId: 'binance-smart-chain',
+    label: 'BNB Smart Chain',
+    coins: [
+      { key: 'usdc-bsc', ticker: 'USDC' },
+      { key: 'usdt-bsc', ticker: 'USDT' },
+    ],
+  },
+  {
+    chainId: 8453,
+    iconId: 'base',
+    label: 'Base',
+    coins: [{ key: 'usdc-base', ticker: 'USDC' }],
+  },
 ]
 
-export function getCoin(key: string): CryptoCoin | undefined {
+export const CRYPTO_COINS = CRYPTO_CHAINS.flatMap(chain =>
+  chain.coins.map(coin => ({
+    key: coin.key,
+    label: `${coin.ticker} (${chain.label})`,
+    ticker: coin.ticker.toLowerCase(),
+    chainId: chain.chainId,
+    chainLabel: chain.label,
+  })),
+)
+
+export function getCoin(key: string) {
   return CRYPTO_COINS.find(c => c.key === key)
 }

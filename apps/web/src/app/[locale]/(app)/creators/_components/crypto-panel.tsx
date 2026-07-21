@@ -5,10 +5,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bitcoin, Loader2, CheckCircle2, Settings2 } from 'lucide-react'
 import { Button } from '@repo/ui/components/button'
 import { Checkbox } from '@repo/ui/components/checkbox'
+import { Switch } from '@repo/ui/components/switch'
 import { Label } from '@repo/ui/components/label'
 import { useToast } from '@repo/ui/hooks/use-toast'
-import { CRYPTO_COINS } from '@/lib/crypto-coins'
+import { CRYPTO_CHAINS } from '@/lib/crypto-coins'
 import { type CreatorDetail } from '@/lib/creators'
+import { ChainIcon } from './chain-icon'
 
 type Props = { detail: CreatorDetail }
 
@@ -19,8 +21,7 @@ type WithdrawInfo = { owed: OwedEntry[]; paymentIds: string[] }
 export function CryptoPanel({ detail }: Props) {
   const qc = useQueryClient()
   const { toast } = useToast()
-  const [showConfig, setShowConfig] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [showConfig, setShowConfig] = useState(true)
   const [markingPaid, setMarkingPaid] = useState(false)
 
   const { data: config, isLoading: loadingConfig } = useQuery<SetupConfig>({
@@ -38,26 +39,41 @@ export function CryptoPanel({ detail }: Props) {
   const isSetup = selectedKeys.size > 0
   const owed = (withdrawInfo?.owed ?? []).filter(o => o.cents > 0)
 
-  async function toggleCoin(coinKey: string, checked: boolean) {
-    const next = new Set(selectedKeys)
-    if (checked) next.add(coinKey)
-    else next.delete(coinKey)
+  async function saveKeys(nextKeys: string[]) {
+    const queryKey = ['crypto-config', detail.id]
+    const previous = qc.getQueryData<SetupConfig>(queryKey)
+    // Optimistic update — flip immediately instead of waiting on the
+    // round-trip (Supabase pooler latency makes that feel sluggish).
+    qc.setQueryData<SetupConfig>(queryKey, { coinKeys: nextKeys })
 
-    setSaving(true)
     try {
       const res = await fetch(`/api/creators/${detail.id}/crypto/setup`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ coinKeys: Array.from(next) }),
+        body: JSON.stringify({ coinKeys: nextKeys }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Falha ao salvar')
-      void qc.invalidateQueries({ queryKey: ['crypto-config', detail.id] })
     } catch (e) {
+      qc.setQueryData(queryKey, previous) // revert on failure
       toast({ title: 'Erro', description: (e as Error).message, variant: 'destructive' })
-    } finally {
-      setSaving(false)
     }
+  }
+
+  function toggleCoin(coinKey: string, checked: boolean) {
+    const next = new Set(selectedKeys)
+    if (checked) next.add(coinKey)
+    else next.delete(coinKey)
+    void saveKeys(Array.from(next))
+  }
+
+  function toggleChain(chainCoinKeys: string[], enabled: boolean) {
+    const next = new Set(selectedKeys)
+    for (const key of chainCoinKeys) {
+      if (enabled) next.add(key)
+      else next.delete(key)
+    }
+    void saveKeys(Array.from(next))
   }
 
   async function markPaidOut() {
@@ -100,28 +116,57 @@ export function CryptoPanel({ detail }: Props) {
         </button>
       </div>
 
-      {(!isSetup || showConfig) && (
-        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-dashed p-4">
+      {showConfig && (
+        <div className="mb-4 flex flex-col gap-3">
           <p className="text-muted-foreground text-[13px]">
-            Escolha quais moedas essa criadora aceita. Pagamentos caem na conta da
-            plataforma e a parte da criadora é repassada manualmente — não há
+            Escolha quais redes e moedas essa criadora aceita. Pagamentos caem na conta
+            da plataforma e a parte da criadora é repassada manualmente — não há
             saque automático via BoomFi ainda.
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            {CRYPTO_COINS.map(coin => (
-              <div key={coin.key} className="flex items-center gap-2">
-                <Checkbox
-                  id={coin.key}
-                  checked={selectedKeys.has(coin.key)}
-                  disabled={saving}
-                  onCheckedChange={v => toggleCoin(coin.key, v === true)}
-                />
-                <Label htmlFor={coin.key} className="text-[13px] cursor-pointer">
-                  {coin.label}
-                </Label>
+
+          {CRYPTO_CHAINS.map(chain => {
+            const chainCoinKeys = chain.coins.map(c => c.key)
+            const chainEnabled = chainCoinKeys.some(k => selectedKeys.has(k))
+            const allSelected = chainCoinKeys.every(k => selectedKeys.has(k))
+
+            return (
+              <div key={chain.chainId} className="rounded-xl border p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ChainIcon iconId={chain.iconId} className="h-5 w-5 shrink-0" />
+                    <span className="text-[13px] font-semibold">{chain.label}</span>
+                  </div>
+                  <Switch
+                    checked={chainEnabled}
+                    onCheckedChange={v => toggleChain(chainCoinKeys, v)}
+                  />
+                </div>
+
+                {chainEnabled && (
+                  <div className="mt-3 flex flex-wrap items-center gap-4 border-t pt-3">
+                    {chain.coins.map(coin => (
+                      <div key={coin.key} className="flex items-center gap-2">
+                        <Checkbox
+                          id={coin.key}
+                          checked={selectedKeys.has(coin.key)}
+                          onCheckedChange={v => toggleCoin(coin.key, v === true)}
+                        />
+                        <Label htmlFor={coin.key} className="text-[13px] cursor-pointer">
+                          {coin.ticker}
+                        </Label>
+                      </div>
+                    ))}
+                    <button
+                      className="text-muted-foreground hover:text-foreground text-[12px] underline-offset-2 hover:underline"
+                      onClick={() => toggleChain(chainCoinKeys, !allSelected)}
+                    >
+                      {allSelected ? 'Desmarcar todas' : 'Selecionar todas'}
+                    </button>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            )
+          })}
         </div>
       )}
 

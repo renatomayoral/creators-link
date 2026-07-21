@@ -8,6 +8,7 @@ import { auth } from '@repo/auth'
 import { db, schema } from '@repo/db'
 import { LocaleSettings } from './_components/locale-settings'
 import { AccountCard } from './_components/account-card'
+import { BillingCard } from './_components/billing-card'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           </Link>
         </CardContent>
       </Card>
+
+      <BillingCard />
 
       <AccountCard user={session.user} />
     </div>

@@ -10,7 +10,7 @@ const baseURL =
 
 export const authClient = createAuthClient({
   baseURL,
-  plugins: [stripeClient()],
+  plugins: [stripeClient({ subscription: true })],
 })
 
 export type { Session, User } from './index'
