@@ -31,9 +31,12 @@ ARG NEXT_PUBLIC_APP_URL=https://creatorslink.org
 ENV NEXT_PUBLIC_APP_DOMAIN=$NEXT_PUBLIC_APP_DOMAIN
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
-# Placeholder so the build doesn't crash if any import path touches db config
-# The real value is injected at runtime via Secret Manager
-ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost/placeholder
+# Placeholders so the build doesn't crash when route page-data collection
+# instantiates these clients at module scope. Real values are injected at
+# runtime via Secret Manager. Written to .env.production because Next.js'
+# page-data-collection workers only inherit vars it loads from .env files
+# itself, not arbitrary Docker ENV / process.env.
+RUN printf 'DATABASE_URL=postgresql://placeholder:placeholder@localhost/placeholder\nBETTER_AUTH_SECRET=placeholder-build-secret\nRESEND_API_KEY=re_placeholder\n' > apps/web/.env.production
 
 RUN pnpm turbo build --filter=@repo/web
 
