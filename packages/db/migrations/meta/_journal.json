@@ -141,6 +141,41 @@
       "when": 1784642821988,
       "tag": "0019_daffy_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784644230980,
+      "tag": "0020_polite_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784652908556,
+      "tag": "0021_fixed_morlun",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1784652923004,
+      "tag": "0022_thin_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1784655098444,
+      "tag": "0023_first_sasquatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1784655884521,
+      "tag": "0024_smooth_aqueduct",
+      "breakpoints": true
     }
   ]
 }

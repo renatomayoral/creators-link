@@ -1,73 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { auth } from '@repo/auth'
-import { getAccountBalances, createCryptoPayout } from '@/lib/boomfi'
 
-const { creator } = schema
+const { creator, payment } = schema
 
-const bodySchema = z.object({
-  currency: z.string().min(2),
-  chainId: z.number().int().positive(),
-  amount: z.string().optional(), // if omitted, withdraws full balance
-})
-
-// POST /api/creators/[id]/crypto/withdraw
-// Manual payout from the creator's BoomFi Virtual Account balance to their
-// external wallet. Deposit splits already route most funds automatically —
-// this covers any balance left in the managed account (e.g. dust, or splits
-// not yet configured for a given chain).
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth.api.getSession({ headers: req.headers })
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { id } = await params
-  const parsed = bodySchema.safeParse(await req.json().catch(() => null))
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
-
-  const c = await db.query.creator.findFirst({ where: eq(creator.id, id) })
-  if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
-  if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  if (!c.boomfiAccountRef)
-    return NextResponse.json({ error: 'Crypto não configurado' }, { status: 400 })
-  if (!c.cryptoWithdrawAddress)
-    return NextResponse.json({ error: 'Endereço de saque não configurado' }, { status: 400 })
-
-  const { currency, chainId } = parsed.data
-
-  let withdrawAmount = parsed.data.amount
-  if (!withdrawAmount) {
-    const balances = await getAccountBalances(c.boomfiAccountRef)
-    const bal = balances.find(b => b.currency === currency)
-    if (!bal || bal.balance <= 0)
-      return NextResponse.json({ error: 'Saldo insuficiente' }, { status: 400 })
-    withdrawAmount = String(bal.balance)
-  }
-
-  try {
-    await createCryptoPayout({
-      accountRef: c.boomfiAccountRef,
-      amount: withdrawAmount,
-      currency,
-      chainId,
-      walletAddress: c.cryptoWithdrawAddress,
-    })
-
-    return NextResponse.json({
-      amount: withdrawAmount,
-      currency,
-      address: c.cryptoWithdrawAddress,
-    })
-  } catch (err) {
-    console.error('[crypto/withdraw]', err)
-    const message = err instanceof Error ? err.message : 'Erro ao sacar'
-    return NextResponse.json({ error: message }, { status: 502 })
-  }
-}
-
-// GET /api/creators/[id]/crypto/withdraw — returns current balance
+// GET /api/creators/[id]/crypto/withdraw
+// Returns the creator's share still owed from crypto ('boomfi') payments,
+// grouped by currency. Crypto payments settle to the platform's own BoomFi
+// account (no automated per-creator payout yet — see creatorCryptoCoin) so
+// this is informational: the platform pays the creator's share out
+// off-platform, then marks it paid via POST below.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: req.headers })
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -77,14 +21,51 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (!c.boomfiAccountRef)
-    return NextResponse.json({ balances: [] })
+  const pending = await db.query.payment.findMany({
+    where: and(
+      eq(payment.creatorId, id),
+      eq(payment.provider, 'boomfi'),
+      eq(payment.status, 'paid'),
+      eq(payment.creatorPayoutStatus, 'pending'),
+    ),
+  })
 
-  try {
-    const balances = await getAccountBalances(c.boomfiAccountRef)
-    return NextResponse.json({ balances })
-  } catch (err) {
-    console.error('[crypto/withdraw GET]', err)
-    return NextResponse.json({ balances: [] })
+  const feePct = Number(c.platformFeePct ?? '10') / 100
+  const owedByCurrency = new Map<string, number>()
+  for (const p of pending) {
+    const creatorShareCents = Math.round(p.grossCents * (1 - feePct))
+    owedByCurrency.set(p.currency, (owedByCurrency.get(p.currency) ?? 0) + creatorShareCents)
   }
+
+  return NextResponse.json({
+    owed: Array.from(owedByCurrency.entries()).map(([currency, cents]) => ({ currency, cents })),
+    paymentIds: pending.map(p => p.id),
+  })
+}
+
+const markPaidSchema = z.object({
+  paymentIds: z.array(z.string()).min(1),
+})
+
+// POST /api/creators/[id]/crypto/withdraw
+// Marks the given crypto payments as paid out to the creator (manual
+// off-platform transfer already done — Pix, bank transfer, sent crypto by hand).
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth.api.getSession({ headers: req.headers })
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id } = await params
+  const parsed = markPaidSchema.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+
+  const c = await db.query.creator.findFirst({ where: eq(creator.id, id) })
+  if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
+  if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  await db
+    .update(payment)
+    .set({ creatorPayoutStatus: 'paid_out' })
+    .where(and(eq(payment.creatorId, id), inArray(payment.id, parsed.data.paymentIds)))
+
+  return NextResponse.json({ ok: true })
 }

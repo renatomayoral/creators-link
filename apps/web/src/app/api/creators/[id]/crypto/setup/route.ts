@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { auth } from '@repo/auth'
-import { createVirtualAccount } from '@/lib/boomfi'
+import { CRYPTO_COINS } from '@/lib/crypto-coins'
 
-const { creator } = schema
+const { creator, creatorCryptoCoin } = schema
+
+const validCoinKeys = new Set(CRYPTO_COINS.map(c => c.key))
 
 const bodySchema = z.object({
-  cryptoWithdrawAddress: z.string().min(10),
-  cryptoWithdrawCurrency: z.string().min(2),
-  chainId: z.number().int().positive(),
+  coinKeys: z.array(z.string()).refine(
+    keys => keys.every(k => validCoinKeys.has(k)),
+    { message: 'Moeda desconhecida' },
+  ),
 })
 
-const PLATFORM_ACCOUNT_REF = process.env['BOOMFI_PLATFORM_ACCOUNT_REF'] ?? ''
-
 // POST /api/creators/[id]/crypto/setup
-// Creates a BoomFi Partners Virtual Account for the creator with a deposit
-// split: the platform fee routes to our main account automatically at
-// pay-in time, the rest settles directly to the creator's wallet.
+// Sets which coins the creator accepts for crypto payments. Payments settle
+// to the platform's own BoomFi settlement accounts (not a creator wallet) —
+// see the note in packages/db/src/creators.ts (creatorCryptoCoin) for why.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: req.headers })
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -31,53 +33,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { cryptoWithdrawAddress, cryptoWithdrawCurrency, chainId } = parsed.data
+  const { coinKeys } = parsed.data
 
-  let boomfiAccountRef = c.boomfiAccountRef
-
-  if (!boomfiAccountRef) {
-    if (!PLATFORM_ACCOUNT_REF) {
-      return NextResponse.json(
-        { error: 'BOOMFI_PLATFORM_ACCOUNT_REF não configurado' },
-        { status: 500 },
-      )
-    }
-    try {
-      const feePct = Number(c.platformFeePct ?? '10')
-      const account = await createVirtualAccount({
-        reference: id,
-        name: c.name,
-        chain: { id: chainId, walletAddress: cryptoWithdrawAddress },
-        platformSplit: { percentage: feePct, destinationRef: PLATFORM_ACCOUNT_REF },
-      })
-      boomfiAccountRef = account.reference
-    } catch (err) {
-      console.error('[crypto/setup] failed to create BoomFi virtual account:', err)
-      return NextResponse.json(
-        { error: 'Falha ao criar conta de settlement no BoomFi' },
-        { status: 502 },
-      )
-    }
+  await db.delete(creatorCryptoCoin).where(eq(creatorCryptoCoin.creatorId, id))
+  if (coinKeys.length > 0) {
+    await db.insert(creatorCryptoCoin).values(
+      coinKeys.map(coinKey => ({ id: randomUUID(), creatorId: id, coinKey })),
+    )
   }
 
-  await db
-    .update(creator)
-    .set({
-      boomfiAccountRef,
-      cryptoWithdrawAddress,
-      cryptoWithdrawCurrency,
-      updatedAt: new Date(),
-    })
-    .where(eq(creator.id, id))
-
-  return NextResponse.json({
-    boomfiAccountRef,
-    cryptoWithdrawAddress,
-    cryptoWithdrawCurrency,
-  })
+  return NextResponse.json({ coinKeys })
 }
 
-// GET /api/creators/[id]/crypto/setup — returns current crypto config
+// GET /api/creators/[id]/crypto/setup — returns accepted coins
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: req.headers })
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -87,9 +55,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  return NextResponse.json({
-    boomfiAccountRef: c.boomfiAccountRef,
-    cryptoWithdrawAddress: c.cryptoWithdrawAddress,
-    cryptoWithdrawCurrency: c.cryptoWithdrawCurrency,
+  const coins = await db.query.creatorCryptoCoin.findMany({
+    where: eq(creatorCryptoCoin.creatorId, id),
   })
+
+  return NextResponse.json({ coinKeys: coins.map(c => c.coinKey) })
 }

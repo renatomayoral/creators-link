@@ -1,6 +1,10 @@
 import { createVerify, createHmac, randomUUID } from 'node:crypto'
 
-const BOOMFI_API_BASE = 'https://api.boomfi.xyz/v1'
+// Confirmed against the live API on 2026-07-21: base host is mapi.boomfi.xyz
+// (not api.boomfi.xyz), and auth is a flat `x-api-key` header — no Bearer
+// token, no HMAC signing for this API (that's only for the Partners API
+// below, per docs.boomfi.xyz/reference/partners-authentication).
+const BOOMFI_API_BASE = 'https://mapi.boomfi.xyz/v1'
 const BOOMFI_PARTNERS_API_BASE = 'https://mapi.boomfi.xyz/partners'
 
 function apiKey(): string {
@@ -13,7 +17,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BOOMFI_API_BASE}${path}`, {
     ...init,
     headers: {
-      'Authorization': `Bearer ${apiKey()}`,
+      'accept': 'application/json',
+      'x-api-key': apiKey(),
       'content-type': 'application/json',
       ...init?.headers,
     },
@@ -21,6 +26,42 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const data = await res.json()
   if (!res.ok) throw new Error(`BoomFi error: ${JSON.stringify(data)}`)
   return data
+}
+
+// ─── Settlement accounts (org-level chains enabled for crypto pay-in) ───────
+// Source of truth for which chains the platform's own account can settle to
+// — the coin catalog offered to creators must be a subset of this, since the
+// deposit_split's platform-fee leg needs a matching chain to land in.
+
+export type SettlementAccount = {
+  id: number
+  chainId: number
+  chainName: string
+  nativeCurrencySymbol: string
+  address: string
+  enabled: boolean
+}
+
+export async function listSettlementAccounts(): Promise<SettlementAccount[]> {
+  const data = await request<{
+    data: {
+      items: Array<{
+        id: number
+        chain_id: number
+        address: string
+        enabled: boolean
+        chain: { id: number; name: string; native_currency_symbol: string }
+      }>
+    }
+  }>('/accounts')
+  return data.data.items.map(item => ({
+    id: item.id,
+    chainId: item.chain_id,
+    chainName: item.chain.name,
+    nativeCurrencySymbol: item.chain.native_currency_symbol,
+    address: item.address,
+    enabled: item.enabled,
+  }))
 }
 
 // ─── Pay links (one-time crypto charge) ──────────────────────────────────────
@@ -156,6 +197,16 @@ export async function createCustomer(params: {
 // ─── Partners API — Virtual Accounts (per-creator settlement + deposit split) ─
 // Separate auth scheme from the main API: header-based HMAC-SHA256 signing.
 // Docs: https://docs.boomfi.xyz/reference/partners-authentication
+//
+// STATUS (confirmed 2026-07-21): every /partners/* route returns 404 for this
+// account (create-virtual-account, get-account-by-reference, payout/address),
+// despite valid X-API-Key + X-API-Signature — the Partners API program isn't
+// enabled for this merchant yet. Until BoomFi enables it, the platform can't
+// split fees or auto-payout via the API. Current model: payments settle to
+// the platform's own settlement accounts (GET /v1/accounts, main API), and
+// the creator's share is paid out manually/off-platform. Keep these functions
+// around unused — swap crypto/setup and the webhook over to them once BoomFi
+// confirms access.
 
 async function partnersRequest<T>(
   method: string,
@@ -187,10 +238,16 @@ async function partnersRequest<T>(
 }
 
 export type DepositSplit = {
-  /** Percentage (0-100) of the gross deposit routed to this destination */
+  /** Percentage (0-100) of the gross deposit routed to this destination, e.g. 10 for 10% */
   percentage: number
-  /** Destination account reference (another Virtual Account, e.g. our platform account) */
+  /** Reference of the destination Virtual Account (e.g. our platform account) */
   destinationRef: string
+}
+
+export type VirtualAccountChain = {
+  chainId: number
+  currencies: string[] // e.g. ["USDT", "USDC"]
+  walletAddress: string
 }
 
 export type VirtualAccount = {
@@ -199,18 +256,23 @@ export type VirtualAccount = {
 }
 
 /**
- * Creates a per-creator Virtual Account with an external settlement wallet
- * and a deposit split that routes the platform fee automatically at pay-in
- * time — the rest settles directly to the creator's wallet.
+ * Creates a per-creator Virtual Account with external settlement wallets and
+ * a deposit split that routes the platform fee automatically at pay-in time
+ * — the rest settles directly to the creator's wallet(s).
  *
- * NOTE: the exact shape of `chains`/`deposit_splits` items is not fully
- * documented publicly — confirm field names against the BoomFi dashboard /
- * OpenAPI spec before relying on this in production.
+ * IMPORTANT: as of 2026-07-21 this endpoint (`/partners/accounts/create-virtual-account`)
+ * returns 404 against the live BoomFi API despite valid Partners API credentials
+ * (X-API-Key + X-API-Signature) — the Partners API program appears to need
+ * separate activation by BoomFi for this account. Field shapes below are
+ * confirmed correct against BoomFi's published OpenAPI spec (partners.CreateVirtualAccountRequest),
+ * so this should work once/if the route is enabled — but it is UNVERIFIED
+ * end-to-end. Do not assume it works without testing again once BoomFi
+ * confirms Partners API access.
  */
 export async function createVirtualAccount(params: {
   reference: string // our creator.id
   name: string
-  chain: { id: number; walletAddress: string }
+  chains: VirtualAccountChain[]
   platformSplit: DepositSplit
 }): Promise<VirtualAccount> {
   const data = await partnersRequest<{ reference: string; name: string }>(
@@ -219,9 +281,13 @@ export async function createVirtualAccount(params: {
     {
       name: params.name,
       reference: params.reference,
-      chains: [{ id: params.chain.id, wallet_address: params.chain.walletAddress }],
+      chains: params.chains.map(c => ({
+        chain_id: c.chainId,
+        currencies: c.currencies,
+        wallet_address: c.walletAddress,
+      })),
       deposit_splits: [
-        { percentage: params.platformSplit.percentage, destination: params.platformSplit.destinationRef },
+        { account_ref: params.platformSplit.destinationRef, pct: String(params.platformSplit.percentage) },
       ],
     },
   )

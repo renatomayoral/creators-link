@@ -73,20 +73,13 @@ export const creator = pgTable(
       .$defaultFn(() => '10.00')
       .notNull(),
     /**
-     * BoomFi Partners API Virtual Account reference (== creator.id) — created
-     * when the creator enables the crypto rail. The account's deposit_splits
-     * route the platform fee to our main account automatically; the rest
-     * settles to cryptoWithdrawAddress.
+     * BoomFi Partners API Virtual Account reference (== creator.id). NOT USED
+     * YET — the Partners API (per-creator settlement + automatic fee split)
+     * isn't enabled for this merchant (confirmed 2026-07-21). Column kept so
+     * we don't need another migration once BoomFi enables it; see
+     * apps/web/src/lib/boomfi.ts createVirtualAccount for the ready-to-use code.
      */
     boomfiAccountRef: text('boomfi_account_ref').unique(),
-    /** Crypto wallet address the creator's share settles to (external wallet) */
-    cryptoWithdrawAddress: text('crypto_withdraw_address'),
-    /** Crypto ticker for withdrawals, e.g. "usdttrc20" */
-    cryptoWithdrawCurrency: text('crypto_withdraw_currency'),
-    /** If true, funds are auto-sent to cryptoWithdrawAddress on every confirmed payment */
-    cryptoAutoWithdraw: boolean('crypto_auto_withdraw')
-      .$defaultFn(() => false)
-      .notNull(),
     /** Payment methods accepted: stripe, pix_manual, pix_auto */
     acceptedPayments: text('accepted_payments')
       .array()
@@ -116,6 +109,39 @@ export const creator = pgTable(
       .notNull(),
   },
   (t) => [index('creator_user_idx').on(t.userId)],
+)
+
+// ─── Creator accepted crypto coins — one row per coin the creator accepts ────
+// A creator can accept several coins/chains at once (e.g. USDT on Polygon AND
+// USDC on Solana). `coinKey` references a fixed catalog in
+// apps/web/src/lib/crypto-coins.ts (chain id + ticker known upfront), so the
+// UI is a checkbox list instead of free-text chain/ticker fields.
+//
+// NOTE: BoomFi's Partners API (per-creator settlement account + automatic fee
+// split) isn't enabled for this merchant yet (confirmed 2026-07-21 — see
+// apps/web/src/lib/boomfi.ts). Until it is, crypto payments settle to the
+// platform's own BoomFi settlement accounts, not a creator wallet — so this
+// table only tracks which coins a creator has opted into accepting, not a
+// payout destination. The platform's share owed to the creator is tracked via
+// `payment` and paid out manually off-platform.
+
+export const creatorCryptoCoin = pgTable(
+  'creator_crypto_coin',
+  {
+    id: text('id').primaryKey(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    /** Key into the CRYPTO_COINS catalog, e.g. "usdt-polygon", "usdc-solana" */
+    coinKey: text('coin_key').notNull(),
+    createdAt: timestamp('created_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    index('creator_crypto_coin_creator_idx').on(t.creatorId),
+    uniqueIndex('creator_crypto_coin_creator_coin_idx').on(t.creatorId, t.coinKey),
+  ],
 )
 
 // ─── Links — the buttons rendered on a creator's page ────────────────────────
@@ -319,6 +345,16 @@ export const payment = pgTable(
     status: text('status')
       .$defaultFn(() => 'paid')
       .notNull(),
+    /**
+     * Manual payout tracking for the crypto rail — 'boomfi' payments settle
+     * to the platform's own settlement accounts (no automatic per-creator
+     * split, see creatorCryptoCoin), so the creator's share is paid out
+     * off-platform and marked here once done. Irrelevant for other rails.
+     * 'pending' | 'paid_out'
+     */
+    creatorPayoutStatus: text('creator_payout_status')
+      .$defaultFn(() => 'pending')
+      .notNull(),
     createdAt: timestamp('created_at')
       .$defaultFn(() => new Date())
       .notNull(),
@@ -326,6 +362,68 @@ export const payment = pgTable(
   (t) => [
     index('payment_creator_created_idx').on(t.creatorId, t.createdAt),
     index('payment_vip_subscription_idx').on(t.vipSubscriptionId),
+  ],
+)
+
+// ─── PPV content — pay-per-view media sold in a creator's Telegram channel ───
+// A blurred/low-res preview is posted publicly in the channel as a teaser
+// (with an inline "Unlock" button); the full media is only ever sent in a
+// private 1:1 chat with the fan after payment — Telegram has no concept of
+// unlocking a single channel post for one viewer, so the private DM is the
+// actual delivery mechanism (see ppvPurchase).
+
+export const ppvContent = pgTable(
+  'ppv_content',
+  {
+    id: text('id').primaryKey(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    title: text('title'),
+    /** Amount in the smallest currency unit (centavos / cents) */
+    priceCents: integer('price_cents').notNull(),
+    /** ISO 4217 lowercase, e.g. "usd" */
+    currency: text('currency').notNull(),
+    /** 'photo' | 'video' */
+    mediaType: text('media_type').notNull(),
+    /** Telegram file_id of the blurred/teaser version, posted in the channel */
+    previewFileId: text('preview_file_id').notNull(),
+    /** GCS URL of the original, full-resolution file — never posted publicly */
+    fullFileUrl: text('full_file_url').notNull(),
+    createdAt: timestamp('created_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [index('ppv_content_creator_idx').on(t.creatorId)],
+)
+
+// ─── PPV purchases — one row per fan unlock attempt/purchase ─────────────────
+
+export const ppvPurchase = pgTable(
+  'ppv_purchase',
+  {
+    id: text('id').primaryKey(),
+    ppvContentId: text('ppv_content_id')
+      .notNull()
+      .references(() => ppvContent.id, { onDelete: 'cascade' }),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => creator.id, { onDelete: 'cascade' }),
+    /** Telegram user id of the fan who tapped "Unlock" — delivery target for the full media */
+    telegramUserId: text('telegram_user_id').notNull(),
+    /** BoomFi payment id — unique, used for webhook idempotency */
+    boomfiPaymentId: text('boomfi_payment_id').unique(),
+    /** 'pending' | 'paid' */
+    status: text('status')
+      .$defaultFn(() => 'pending')
+      .notNull(),
+    createdAt: timestamp('created_at')
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    index('ppv_purchase_content_idx').on(t.ppvContentId),
+    index('ppv_purchase_fan_idx').on(t.telegramUserId),
   ],
 )
 

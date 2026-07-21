@@ -1,4 +1,4 @@
-import { platform, creator, creatorLink, linkClick, vipPlan, vipPlanPrice, vipSubscription, payment, platformToken } from './creators'
+import { platform, creator, creatorCryptoCoin, creatorLink, linkClick, vipPlan, vipPlanPrice, vipSubscription, payment, ppvContent, ppvPurchase, platformToken } from './creators'
 import { pgTable, text, timestamp, boolean, integer, date, uniqueIndex } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -227,12 +227,15 @@ export const referral = pgTable('referral', {
 export const schema = {
   platform,
   creator,
+  creatorCryptoCoin,
   creatorLink,
   linkClick,
   vipPlan,
   vipPlanPrice,
   vipSubscription,
   payment,
+  ppvContent,
+  ppvPurchase,
   platformToken,
   user,
   session,

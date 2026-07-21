@@ -199,6 +199,9 @@ CRON_SECRET
 
 - **SEMPRE** usar `drizzle-kit generate` + `drizzle-kit migrate` para aplicar mudanças no schema
 - **NUNCA** usar `drizzle-kit push` — push bypassa o histórico de migrations e não é adequado para produção
+- **Claude Code**: sempre que alterar `packages/db/src/*.ts` (schema), rodar `cd packages/db && pnpm drizzle-kit generate` logo em seguida — não pular essa etapa.
+  - Se a mudança for só adição de coluna/tabela nova (sem ambiguidade), o comando roda direto, sem prompt.
+  - Se a mudança envolver algo que pode ser interpretado como rename (remover uma coluna e adicionar outra parecida, mudar nome de coluna/tabela), o drizzle-kit abre um prompt interativo ("essa coluna foi renomeada?") que exige TTY — e o ambiente de execução do Claude Code não tem TTY, então o comando falha com `Interactive prompts require a TTY terminal`. Nesse caso, avisar o usuário explicitamente que a migration não pôde ser gerada por essa limitação e pedir para ele rodar o comando no terminal dele (escolhendo drop+add, não rename, quando as colunas antigas não devem ser preservadas).
 
 ```bash
 cd packages/db && pnpm drizzle-kit generate
