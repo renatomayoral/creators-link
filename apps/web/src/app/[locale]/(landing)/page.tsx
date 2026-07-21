@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { LandingNav } from './_components/landing-nav'
-import { PricingCta } from './_components/pricing-cta'
+import { PricingCta, FreeCta } from './_components/pricing-cta'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 
@@ -207,8 +207,7 @@ export default async function LandingPage({ params }: Props) {
               {t('hero.description')}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 13, marginTop: 30 }}>
-              <Link
-                href="/login"
+              <FreeCta
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -224,7 +223,7 @@ export default async function LandingPage({ params }: Props) {
                 }}
               >
                 {t('hero.ctaMain')} <IconArrow />
-              </Link>
+              </FreeCta>
               <a
                 href="#como"
                 style={{
@@ -1467,8 +1466,7 @@ export default async function LandingPage({ params }: Props) {
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
               {t('pricing.starterDesc')}
             </p>
-            <Link
-              href="/login"
+            <FreeCta
               style={{
                 display: 'block',
                 textAlign: 'center',
@@ -1484,7 +1482,7 @@ export default async function LandingPage({ params }: Props) {
               }}
             >
               {t('pricing.ctaFree')}
-            </Link>
+            </FreeCta>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
               style={{

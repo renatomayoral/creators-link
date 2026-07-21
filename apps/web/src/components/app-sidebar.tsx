@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
-import { LayoutDashboard, Users, Settings, LogOut, Gift, ChevronsUpDown, CreditCard } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, LogOut, Gift, ChevronsUpDown, CreditCard, ArrowUpCircle } from 'lucide-react'
 import { authClient } from '@repo/auth/client'
 import { PLANS } from '@repo/payments/plans'
 import {
@@ -159,6 +159,12 @@ export function AppSidebar() {
                   <Link href={`/${locale}/settings/billing`}>
                     <CreditCard />
                     Cobrança
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/${locale}#precos`}>
+                    <ArrowUpCircle />
+                    Upgrade do plano
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild onSelect={e => e.preventDefault()}>
