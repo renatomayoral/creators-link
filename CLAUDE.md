@@ -31,7 +31,11 @@ e a infraestrutura foi deletada**. Não recriar essas referências — hoje só 
   service `creatorslink`.
 - Secrets usados no deploy (Secret Manager, nomes em MAIÚSCULAS): `DATABASE_URL`,
   `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `STRIPE_SECRET_KEY`,
-  `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SPARK`, `STRIPE_PRICE_CREATOR`, `STRIPE_PRICE_PRO`.
+  `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SPARK`, `STRIPE_PRICE_CREATOR`, `STRIPE_PRICE_PRO`,
+  `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_USER_AUTH_STRING`, `TELEGRAM_BOT_TOKEN`,
+  `TELEGRAM_WEBHOOK_SECRET`, `BOOMFI_API_KEY`, `BOOMFI_WEBHOOK_PUBLIC_KEY`,
+  `BOOMFI_PARTNERS_API_KEY`, `BOOMFI_PARTNERS_SIGNING_SECRET`, `BOOMFI_PLATFORM_ACCOUNT_REF`,
+  `CRON_SECRET`.
 - Não há trigger automático de Cloud Build configurado — builds/deploys são disparados
   manualmente (`gcloud builds submit --config=cloudbuild.web.yaml`).
 - `cloudbuild.yaml` (raiz, sem `.web`) e `.github/workflows/docker-build.yml` são resquícios
