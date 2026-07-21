@@ -20,7 +20,7 @@ function getDb(): DB {
     prepare: false, // required for serverless (Cloud Run / Next.js)
     max: 5, // cap pool size — remote PG has limited connection slots
     idle_timeout: 20,
-    connect_timeout: 10,
+    connect_timeout: 30, // Supabase pooler can be slow on Cloud Run cold starts
   })
   globalForDb._db = drizzle(client, { schema })
   return globalForDb._db
