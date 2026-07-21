@@ -1,6 +1,6 @@
 import type Stripe from 'stripe'
 import { getStripe } from './index'
-import { takeRatePercent } from '../plans'
+import { takeRatePercent, takeRateAmountCents } from '../plans'
 
 // ─── Stripe Connect (multi-creator marketplace) ──────────────────────────────
 // Each creator gets their own Express connected account. Fan subscription
@@ -129,13 +129,29 @@ export type SubscriptionCheckoutParams = {
  *
  * Uses destination charges: the charge is created on the platform account,
  * the funds are transferred to the creator's connected account, and the
- * platform keeps `application_fee_percent` of each recurring payment.
+ * platform keeps an application fee on each recurring payment — the tiered
+ * percentage from plans.ts plus a fixed per-transaction amount (matches the
+ * "+ $0.30" on the pricing table). Stripe subscriptions only support a fixed
+ * application_fee_percent (no persistent fixed-amount field), so we fetch
+ * the Price's unit_amount once to fold the fixed cents into an equivalent
+ * percentage for this recurring charge.
  */
 export async function createSubscriptionCheckout(
   params: SubscriptionCheckoutParams,
 ): Promise<Stripe.Checkout.Session> {
-  const feePercent = takeRatePercent(params.creatorPlatformPlan)
-  return getStripe().checkout.sessions.create({
+  const stripe = getStripe()
+  const price = await stripe.prices.retrieve(
+    params.priceId,
+    {},
+    { stripeAccount: params.creatorAccountId },
+  )
+  const grossAmount = price.unit_amount ?? 0
+  const feePercent =
+    grossAmount > 0
+      ? (takeRateAmountCents(params.creatorPlatformPlan, grossAmount) / grossAmount) * 100
+      : takeRatePercent(params.creatorPlatformPlan)
+
+  return stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: [{ price: params.priceId, quantity: 1 }],
     customer_email: params.customerEmail,
@@ -178,8 +194,7 @@ export type CryptoPaymentCheckoutParams = {
 export async function createCryptoPaymentCheckout(
   params: CryptoPaymentCheckoutParams,
 ): Promise<Stripe.Checkout.Session> {
-  const feePercent = takeRatePercent(params.creatorPlatformPlan)
-  const applicationFeeAmount = Math.round(params.amount * (feePercent / 100))
+  const applicationFeeAmount = takeRateAmountCents(params.creatorPlatformPlan, params.amount)
   return getStripe().checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['crypto'],

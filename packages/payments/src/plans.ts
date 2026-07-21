@@ -63,3 +63,21 @@ export function takeRatePercent(plan: string): number {
   const bps = TAKE_RATE_BPS[key] ?? TAKE_RATE_BPS['free']!
   return bps / 100
 }
+
+// Fixed per-transaction fee, in the smallest unit of whatever currency the
+// charge is in (e.g. 30 cents, or 30 centavos for a BRL charge) — matches
+// the "+ $0.30" on the pricing table. Applied on top of the percentage via
+// Stripe's `application_fee_amount` (not `application_fee_percent`, which
+// only supports a percentage), so callers must switch to the amount-based
+// fee field once this is added — see stripe/connect.ts.
+export const TAKE_RATE_FIXED_CENTS = 30
+
+/**
+ * Total application fee (percentage + fixed) for a gross charge amount, in
+ * the smallest currency unit. Use this instead of `application_fee_percent`
+ * so the fixed component is included.
+ */
+export function takeRateAmountCents(plan: string, grossAmountCents: number): number {
+  const percentFee = Math.round(grossAmountCents * (takeRatePercent(plan) / 100))
+  return percentFee + TAKE_RATE_FIXED_CENTS
+}

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { LandingNav } from './_components/landing-nav'
+import { PricingCta } from './_components/pricing-cta'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 
@@ -1561,8 +1562,8 @@ export default async function LandingPage({ params }: Props) {
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
               {t('pricing.proDesc')}
             </p>
-            <Link
-              href="/login"
+            <PricingCta
+              plan="creator"
               style={{
                 display: 'block',
                 textAlign: 'center',
@@ -1578,7 +1579,7 @@ export default async function LandingPage({ params }: Props) {
               }}
             >
               {t('pricing.ctaPro')}
-            </Link>
+            </PricingCta>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
               style={{
@@ -1639,8 +1640,8 @@ export default async function LandingPage({ params }: Props) {
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
               {t('pricing.agencyDesc')}
             </p>
-            <Link
-              href="/login"
+            <PricingCta
+              plan="pro"
               style={{
                 display: 'block',
                 textAlign: 'center',
@@ -1656,7 +1657,7 @@ export default async function LandingPage({ params }: Props) {
               }}
             >
               {t('pricing.ctaAgency')}
-            </Link>
+            </PricingCta>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
               style={{
