@@ -67,7 +67,7 @@ e a infraestrutura foi deletada**. Não recriar essas referências — hoje só 
 
 ## Estrutura do Monorepo
 
-```
+```text
 creators-link/
 ├── apps/
 │   └── web/                          # Next.js 16 — dashboard + páginas públicas + API
@@ -147,7 +147,7 @@ Nota: a cobrança cripto (BoomFi) vive em `apps/web/src/lib/boomfi.ts`, não nes
 
 ## apps/web — API Routes (visão geral)
 
-```
+```text
 /api/auth/[...all]                       Better Auth (todas as rotas de auth)
 /api/creators, /api/creators/[id]         CRUD de páginas de criadora
 /api/creators/[id]/links(...)             Links da página (+ reorder)
@@ -175,7 +175,7 @@ Nota: a cobrança cripto (BoomFi) vive em `apps/web/src/lib/boomfi.ts`, não nes
 
 Ver `.env` (não commitado) para valores reais. Chaves principais:
 
-```
+```text
 DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL
 NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_APP_DOMAIN
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET

@@ -61,7 +61,7 @@ export default function AdminPage() {
 
   const STEPS = [
     { label: 'Stripe configurado', done: !!onboarding?.stripeMode },
-    { label: 'Plataformas selecionadas', done: (onboarding?.selectedPlatforms.length ?? 0) > 0 },
+    { label: 'Plataformas selecionadas', done: (onboarding?.selectedPlatforms?.length ?? 0) > 0 },
     { label: 'Primeira criadora criada', done: (onboarding?.onboardingStep ?? 0) >= 3 },
   ]
 

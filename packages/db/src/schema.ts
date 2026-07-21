@@ -12,6 +12,8 @@ export const user = pgTable('user', {
     .$defaultFn(() => false)
     .notNull(),
   image: text('image'),
+  /** Stripe Customer id — created on signup by @better-auth/stripe (createCustomerOnSignUp) */
+  stripeCustomerId: text('stripe_customer_id').unique(),
   createdAt: timestamp('created_at')
     .$defaultFn(() => new Date())
     .notNull(),
