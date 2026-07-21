@@ -106,7 +106,10 @@ creators-link/
 ## packages/payments
 
 - `stripe/` — checkout, Connect (onboarding de criadoras), webhooks, billing portal
-- `plans.ts` — definição dos planos (Spark/Creator/Pro)
+- `plans.ts` — definição dos planos (Free/Creator/Pro) e da taxa por transação
+  (`TAKE_RATE_BPS`) que decresce conforme o plano — ver tabela em
+  creatorslink.org/#precos. `STRIPE_PRICE_SPARK` ficou sem uso: o plano Free
+  não tem Stripe Price (é o tier padrão sem assinatura).
 
 Nota: a cobrança cripto (BoomFi) vive em `apps/web/src/lib/boomfi.ts`, não neste pacote.
 

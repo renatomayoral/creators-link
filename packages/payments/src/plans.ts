@@ -8,52 +8,58 @@ export type Plan = {
   description: string
 }
 
-// ─── Plan definitions — prices aligned with market research ──────────────────
-// Spark $12/mo · Creator $39/mo · Pro $99/mo
-// Annual = 20% discount: Spark $9.60 · Creator $31.20 · Pro $79.20
+// ─── Plan definitions — Creators Link platform subscription tiers ───────────
+// Free $0/mo · Creator $19/mo · Pro $79/mo
+// Per-transaction fee on VIP sales shrinks as the creator upgrades — see
+// TAKE_RATE_BPS below. Matches the pricing table at creatorslink.org/#precos.
 
 export const PLANS: Record<string, Plan> = {
-  spark: {
-    priceId: process.env['STRIPE_PRICE_SPARK'],
-    amount: 1200, // $12.00
-    amountAnnual: 960, // $9.60
-    label: 'Spark',
-    description: 'Para criadores que estão começando. Imagens ilimitadas, 5 vídeos/dia.',
+  // No priceId — Free is the default tier with no Stripe subscription
+  // (auth/index.ts filters plans without a priceId out of the Better Auth
+  // subscription plan list, so this never becomes a checkout option).
+  free: {
+    priceId: undefined,
+    amount: 0,
+    amountAnnual: 0,
+    label: 'Free',
+    description: 'Para começar e validar. Stripe, Pix e cripto, bot de vendas no Telegram.',
   },
   creator: {
     priceId: process.env['STRIPE_PRICE_CREATOR'],
-    amount: 3900, // $39.00
-    amountAnnual: 3120, // $31.20
+    amount: 1900, // $19.00
+    amountAnnual: 1900, // no annual discount defined yet
     label: 'Creator',
-    description: 'Para criadores profissionais. I2V, LoRA, 20 vídeos/dia.',
+    description: 'Para criadoras em ritmo de crescimento. Sem marca, domínio próprio, PPV no Telegram.',
   },
   pro: {
     priceId: process.env['STRIPE_PRICE_PRO'],
-    amount: 9900, // $99.00
-    amountAnnual: 7920, // $79.20
+    amount: 7900, // $79.00
+    amountAnnual: 7900, // no annual discount defined yet
     label: 'Pro',
-    description: 'Para volume alto e estúdios. API, LoRA training, 60 vídeos/dia.',
+    description: 'Para quem fatura alto ou gerencia vários perfis. Múltiplos bots, CRM, suporte 24/7.',
   },
 }
 
 // ─── Legacy plan name aliases (backward compat for existing subscriptions) ───
 export const PLAN_ALIASES: Record<string, string> = {
-  starter: 'spark',
+  spark: 'free',
+  starter: 'free',
   studio: 'pro',
 }
 
 // ─── Platform take rate (application fee on creator VIP sales) ────────────────
 // Hybrid tiered model: the platform fee on each creator sale shrinks as the
 // creator upgrades, which rewards upgrading. Expressed as a percentage.
+// Matches "Taxa por transação" on the pricing table: Free 9.9% · Creator 6.9% · Pro 3.9%.
 export const TAKE_RATE_BPS: Record<string, number> = {
-  spark: 800, // 8.0%
-  creator: 500, // 5.0%
-  pro: 300, // 3.0%
+  free: 990, // 9.9%
+  creator: 690, // 6.9%
+  pro: 390, // 3.9%
 }
 
 /** Resolves the application-fee percent for a creator's platform plan. */
 export function takeRatePercent(plan: string): number {
   const key = PLAN_ALIASES[plan] ?? plan
-  const bps = TAKE_RATE_BPS[key] ?? TAKE_RATE_BPS['spark']!
+  const bps = TAKE_RATE_BPS[key] ?? TAKE_RATE_BPS['free']!
   return bps / 100
 }
