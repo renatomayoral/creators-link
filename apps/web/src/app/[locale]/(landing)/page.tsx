@@ -1447,8 +1447,21 @@ export default async function LandingPage({ params }: Props) {
               <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>{t('pricing.freePrice')}</span>
               <span style={{ fontSize: 14, color: lightMutedTextColor }}>{t('pricing.perMonth')}</span>
             </div>
-            <div style={{ fontSize: 12.5, color: mutedTextColor, marginTop: 4, fontWeight: 600 }}>
-              {t('pricing.freeFees')}
+            <div
+              style={{
+                marginTop: 10,
+                padding: '8px 12px',
+                borderRadius: 10,
+                background: 'rgba(255,255,255,.04)',
+                border: `1px solid ${cardBorderColor}`,
+              }}
+            >
+              <div style={{ fontSize: 11, color: lightMutedTextColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                {t('pricing.feesLabel')}
+              </div>
+              <div style={{ fontSize: 18, color: '#e2e8f0', fontWeight: 800, marginTop: 2 }}>
+                {t('pricing.freeFees')}
+              </div>
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
               {t('pricing.starterDesc')}
@@ -1485,6 +1498,7 @@ export default async function LandingPage({ params }: Props) {
                 t('pricing.freeFeature1'),
                 t('pricing.freeFeature2'),
                 t('pricing.freeFeature3'),
+                t('pricing.freeFeature4'),
               ].map((f) => (
                 <span key={f} style={{ display: 'flex', gap: 9 }}>
                   <IconCheck />
@@ -1528,8 +1542,21 @@ export default async function LandingPage({ params }: Props) {
               <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>{t('pricing.creatorPrice')}</span>
               <span style={{ fontSize: 14, color: lightMutedTextColor }}>{t('pricing.perMonth')}</span>
             </div>
-            <div style={{ fontSize: 12.5, color: ACCENT, marginTop: 4, fontWeight: 600 }}>
-              {t('pricing.creatorFees')}
+            <div
+              style={{
+                marginTop: 10,
+                padding: '8px 12px',
+                borderRadius: 10,
+                background: `${ACCENT}14`,
+                border: `1px solid ${ACCENT}55`,
+              }}
+            >
+              <div style={{ fontSize: 11, color: ACCENT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                {t('pricing.feesLabel')}
+              </div>
+              <div style={{ fontSize: 18, color: '#fff', fontWeight: 800, marginTop: 2 }}>
+                {t('pricing.creatorFees')}
+              </div>
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
               {t('pricing.proDesc')}
@@ -1568,6 +1595,7 @@ export default async function LandingPage({ params }: Props) {
                 t('pricing.creatorFeature3'),
                 t('pricing.creatorFeature4'),
                 t('pricing.creatorFeature5'),
+                t('pricing.creatorFeature6'),
               ].map((f) => (
                 <span key={f} style={{ display: 'flex', gap: 9 }}>
                   <IconCheck color={ACCENT} />
@@ -1592,14 +1620,27 @@ export default async function LandingPage({ params }: Props) {
               <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-.02em' }}>{t('pricing.proPrice')}</span>
               <span style={{ fontSize: 14, color: lightMutedTextColor }}>{t('pricing.perMonth')}</span>
             </div>
-            <div style={{ fontSize: 12.5, color: mutedTextColor, marginTop: 4, fontWeight: 600 }}>
-              {t('pricing.proFees')}
+            <div
+              style={{
+                marginTop: 10,
+                padding: '8px 12px',
+                borderRadius: 10,
+                background: 'rgba(255,255,255,.04)',
+                border: `1px solid ${cardBorderColor}`,
+              }}
+            >
+              <div style={{ fontSize: 11, color: lightMutedTextColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                {t('pricing.feesLabel')}
+              </div>
+              <div style={{ fontSize: 18, color: '#e2e8f0', fontWeight: 800, marginTop: 2 }}>
+                {t('pricing.proFees')}
+              </div>
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 13.5, color: mutedTextColor, lineHeight: 1.5 }}>
               {t('pricing.agencyDesc')}
             </p>
-            <a
-              href="mailto:contato@creatorslink.org"
+            <Link
+              href="/login"
               style={{
                 display: 'block',
                 textAlign: 'center',
@@ -1615,7 +1656,7 @@ export default async function LandingPage({ params }: Props) {
               }}
             >
               {t('pricing.ctaAgency')}
-            </a>
+            </Link>
             <div style={{ height: 1, background: dividerBg, margin: '22px 0' }} />
             <div
               style={{
@@ -1632,6 +1673,7 @@ export default async function LandingPage({ params }: Props) {
                 t('pricing.proFeature3'),
                 t('pricing.proFeature4'),
                 t('pricing.proFeature5'),
+                t('pricing.proFeature6'),
               ].map((f) => (
                 <span key={f} style={{ display: 'flex', gap: 9 }}>
                   <IconCheck />
