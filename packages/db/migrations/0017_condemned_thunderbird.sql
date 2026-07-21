@@ -1,0 +1,1 @@
+ALTER TABLE "vip_plan_price" ADD COLUMN "boomfi_plan_id" text;

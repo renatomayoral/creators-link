@@ -72,9 +72,14 @@ export const creator = pgTable(
     platformFeePct: text('platform_fee_pct')
       .$defaultFn(() => '10.00')
       .notNull(),
-    /** NOWPayments Custody customer id — created when creator enables crypto */
-    nowpaymentsCustomerId: text('nowpayments_customer_id').unique(),
-    /** Crypto wallet address to withdraw to (e.g. USDT TRC-20) */
+    /**
+     * BoomFi Partners API Virtual Account reference (== creator.id) — created
+     * when the creator enables the crypto rail. The account's deposit_splits
+     * route the platform fee to our main account automatically; the rest
+     * settles to cryptoWithdrawAddress.
+     */
+    boomfiAccountRef: text('boomfi_account_ref').unique(),
+    /** Crypto wallet address the creator's share settles to (external wallet) */
     cryptoWithdrawAddress: text('crypto_withdraw_address'),
     /** Crypto ticker for withdrawals, e.g. "usdttrc20" */
     cryptoWithdrawCurrency: text('crypto_withdraw_currency'),
@@ -214,8 +219,8 @@ export const vipPlanPrice = pgTable(
     provider: text('provider').notNull(),
     /** Stripe Price id when provider = stripe (recurring subscription) */
     stripePriceId: text('stripe_price_id'),
-    /** NOWPayments subscription plan id when provider = crypto_sub */
-    nowpaymentsPlansId: text('nowpayments_plans_id'),
+    /** BoomFi plan id when provider = crypto_sub */
+    boomfiPlanId: text('boomfi_plan_id'),
     active: boolean('active')
       .$defaultFn(() => true)
       .notNull(),
@@ -244,14 +249,14 @@ export const vipSubscription = pgTable(
       .references(() => vipPlan.id, { onDelete: 'restrict' }),
     /** Fan email (from checkout) */
     fanEmail: text('fan_email'),
-    /** Which rail processed this: 'stripe' | 'nowpayments' */
+    /** Which rail processed this: 'stripe' | 'boomfi' */
     provider: text('provider').notNull(),
     /** Stripe Subscription id, e.g. "sub_..." (stripe rail) */
     stripeSubscriptionId: text('stripe_subscription_id').unique(),
     /** Stripe Customer id, e.g. "cus_..." (stripe rail) */
     stripeCustomerId: text('stripe_customer_id'),
-    /** NOWPayments subscription id (crypto rail) */
-    nowpaymentsSubscriptionId: text('nowpayments_subscription_id').unique(),
+    /** BoomFi subscription id (crypto rail) */
+    boomfiSubscriptionId: text('boomfi_subscription_id').unique(),
     /** 'active' | 'past_due' | 'canceled' | 'expired' */
     status: text('status')
       .$defaultFn(() => 'active')
@@ -290,14 +295,14 @@ export const payment = pgTable(
     }),
     /** Fan email, when available from the payment provider */
     fanEmail: text('fan_email'),
-    /** Payment rail: 'stripe' | 'nowpayments' | 'pix_manual' */
+    /** Payment rail: 'stripe' | 'boomfi' | 'pix_manual' */
     provider: text('provider').notNull(),
     /** Human label for the source column, e.g. "Telegram · Plano VIP", "OnlyFans" */
     source: text('source').notNull(),
     /** Stripe Invoice id — unique, used for webhook idempotency (stripe rail) */
     stripeInvoiceId: text('stripe_invoice_id').unique(),
-    /** NOWPayments payment id — unique, used for webhook idempotency (crypto rail) */
-    nowpaymentsPaymentId: text('nowpayments_payment_id').unique(),
+    /** BoomFi payment id — unique, used for webhook idempotency (crypto rail) */
+    boomfiPaymentId: text('boomfi_payment_id').unique(),
     /** ISO 4217 lowercase, e.g. "brl", "usd" */
     currency: text('currency').notNull(),
     /** Gross amount charged, in the smallest currency unit (centavos / cents) */

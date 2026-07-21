@@ -1,39 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
-import { verifyIpnSignature, transferToCustomer, withdrawFromCustomer } from '@/lib/nowpayments'
+import { verifyWebhookSignature } from '@/lib/boomfi'
 import { sendCryptoAccessGranted, sendAccessExpired } from '@/lib/email'
 
 const { vipSubscription, vipPlan, creator } = schema
 
-// POST /api/webhooks/nowpayments
-// IPN from NowPayments — called on every payment status change.
+type BoomfiEvent = {
+  event: string
+  data: {
+    id: string
+    subscription_id?: string
+    reference_id?: string
+    status?: string
+  }
+}
+
+// POST /api/webhooks/boomfi
+// Handles Subscription.Updated / Subscription.Canceled / Payment.Updated events.
+// Signature: https://docs.boomfi.xyz/docs/webhook-signatures (RSA-SHA256 over "timestamp.rawBody").
 export async function POST(req: NextRequest) {
-  const signature = req.headers.get('x-nowpayments-sig') ?? ''
+  const timestamp = req.headers.get('x-boomfi-timestamp') ?? ''
+  const signature = req.headers.get('x-boomfi-signature') ?? ''
   const rawBody = await req.text()
 
-  if (!verifyIpnSignature(rawBody, signature)) {
+  if (!verifyWebhookSignature(timestamp, rawBody, signature)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  let payload: Record<string, unknown>
+  let payload: BoomfiEvent
   try {
     payload = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const status = String(payload['payment_status'] ?? payload['status'] ?? '')
-  const nowSubId = String(payload['subscription_id'] ?? payload['order_id'] ?? '')
-
-  if (!nowSubId) return NextResponse.json({ received: true })
+  const boomfiSubId = payload.data.subscription_id ?? payload.data.reference_id ?? ''
+  if (!boomfiSubId) return NextResponse.json({ received: true })
 
   const sub = await db.query.vipSubscription.findFirst({
-    where: eq(vipSubscription.nowpaymentsSubscriptionId, nowSubId),
+    where: eq(vipSubscription.boomfiSubscriptionId, boomfiSubId),
   })
 
   if (!sub) {
-    console.warn('[nowpayments webhook] subscription not found:', nowSubId)
+    console.warn('[boomfi webhook] subscription not found:', boomfiSubId)
     return NextResponse.json({ received: true })
   }
 
@@ -41,7 +51,7 @@ export async function POST(req: NextRequest) {
   const c = await db.query.creator.findFirst({ where: eq(creator.id, sub.creatorId) })
   const botToken = process.env['TELEGRAM_BOT_TOKEN']
 
-  if (status === 'PAID') {
+  if (payload.event === 'Payment.Updated' || payload.event === 'Subscription.Updated') {
     const periodEnd = plan
       ? new Date(Date.now() + plan.intervalDay * 86400_000)
       : new Date(Date.now() + 30 * 86400_000)
@@ -51,40 +61,11 @@ export async function POST(req: NextRequest) {
       .set({ status: 'active', currentPeriodEnd: periodEnd, updatedAt: new Date() })
       .where(eq(vipSubscription.id, sub.id))
 
-    // ── Custody split: transfer creator share after platform fee ─────────────
-    if (c?.nowpaymentsCustomerId) {
-      const payAmount = Number(payload['pay_amount'] ?? payload['actually_paid'] ?? 0)
-      const payCurrency = String(payload['pay_currency'] ?? payload['outcome_currency'] ?? '')
+    // Fee split already happened automatically at pay-in time via the
+    // creator's BoomFi Virtual Account deposit_splits config (see
+    // /api/creators/[id]/crypto/setup) — no manual transfer needed here.
 
-      if (payAmount > 0 && payCurrency) {
-        const feePct = Number(c.platformFeePct ?? '10') / 100
-        const creatorShare = Number((payAmount * (1 - feePct)).toFixed(8))
-
-        try {
-          await transferToCustomer({
-            customerId: c.nowpaymentsCustomerId,
-            currency: payCurrency,
-            amount: creatorShare,
-          })
-
-          // Auto-withdraw if enabled and wallet is configured
-          if (c.cryptoAutoWithdraw && c.cryptoWithdrawAddress && c.cryptoWithdrawCurrency) {
-            await withdrawFromCustomer({
-              customerId: c.nowpaymentsCustomerId,
-              address: c.cryptoWithdrawAddress,
-              currency: c.cryptoWithdrawCurrency,
-              amount: creatorShare,
-            }).catch(err =>
-              console.error('[nowpayments webhook] auto-withdraw failed:', err)
-            )
-          }
-        } catch (err) {
-          console.error('[nowpayments webhook] custody split failed:', err)
-        }
-      }
-    }
-
-    // Generate one-time Telegram invite link and email it to the fan
+    // Generate one-time Telegram invite link and email it to the fan.
     if (botToken && c?.telegramChannelId && sub.fanEmail) {
       try {
         const expireDate = Math.floor(periodEnd.getTime() / 1000)
@@ -110,21 +91,20 @@ export async function POST(req: NextRequest) {
             planTitle: plan?.title ?? 'VIP',
             inviteLink,
             periodEnd,
-          }).catch(err => console.error('[nowpayments webhook] failed to send access email:', err))
+          }).catch(err => console.error('[boomfi webhook] failed to send access email:', err))
         }
       } catch (err) {
-        console.error('[nowpayments webhook] failed to create invite link:', err)
+        console.error('[boomfi webhook] failed to create invite link:', err)
       }
     }
   }
 
-  if (status === 'EXPIRED') {
+  if (payload.event === 'Subscription.Canceled') {
     await db
       .update(vipSubscription)
       .set({ status: 'expired', updatedAt: new Date() })
       .where(eq(vipSubscription.id, sub.id))
 
-    // Send expiry email and remove fan from Telegram channel
     if (sub.fanEmail) {
       const appUrl = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000'
       const renewLink = `${appUrl}/p/${c?.slug ?? ''}`
@@ -133,21 +113,14 @@ export async function POST(req: NextRequest) {
         creatorName: c?.name ?? '',
         planTitle: plan?.title ?? 'VIP',
         renewLink,
-      }).catch(err => console.error('[nowpayments webhook] failed to send expiry email:', err))
+      }).catch(err => console.error('[boomfi webhook] failed to send expiry email:', err))
     }
 
     // Remove fan from Telegram channel (requires Telegram user_id stored at join time)
     // TODO: store telegram_user_id on vipSubscription when fan joins via invite link
     if (botToken && c?.telegramChannelId) {
-      console.log('[nowpayments webhook] EXPIRED — fan should be removed:', sub.fanEmail)
+      console.log('[boomfi webhook] Canceled — fan should be removed:', sub.fanEmail)
     }
-  }
-
-  if (status === 'PARTIALLY_PAID') {
-    await db
-      .update(vipSubscription)
-      .set({ status: 'past_due', updatedAt: new Date() })
-      .where(eq(vipSubscription.id, sub.id))
   }
 
   return NextResponse.json({ received: true })

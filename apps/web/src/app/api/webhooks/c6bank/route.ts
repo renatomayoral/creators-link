@@ -59,9 +59,9 @@ async function handlePixConfirmed({
   const sub = await db.query.vipSubscription.findFirst({
     where: and(
       eq(vipSubscription.provider, 'pix_auto'),
-      // txid stored in nowpaymentsSubscriptionId as a temporary field until
+      // txid stored in boomfiSubscriptionId as a temporary field until
       // we have a dedicated pix_txid column — replace with a proper column later
-      eq(vipSubscription.nowpaymentsSubscriptionId, txid),
+      eq(vipSubscription.boomfiSubscriptionId, txid),
     ),
   })
 

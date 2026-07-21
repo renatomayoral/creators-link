@@ -8,7 +8,6 @@
     "./stripe": "./src/stripe/index.ts",
     "./stripe/connect": "./src/stripe/connect.ts",
     "./stripe/webhook": "./src/stripe/webhook.ts",
-    "./nowpayments": "./src/nowpayments/index.ts",
     "./plans": "./src/plans.ts"
   },
   "scripts": {

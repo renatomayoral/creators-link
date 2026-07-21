@@ -3,7 +3,7 @@
 Monorepo com Turborepo + Next.js 16 para o **Creators Link** (creatorslink.org): SaaS de
 link-in-bio para criadoras de conteúdo adulto. Cada criadora tem uma página pública
 (`/p/[slug]`) com links para suas plataformas (OnlyFans, Fansly, Fanvue, Patreon, Telegram),
-tracking de cliques, planos VIP com cobrança via Stripe/NOWPayments (cripto)/PIX, e um
+tracking de cliques, planos VIP com cobrança via Stripe/BoomFi (cripto)/PIX, e um
 dashboard autenticado para gerenciar tudo.
 
 O antigo produto "AI Studio" (ComfyUI + Wan 2.2 + FLUX.1 na GCP/RunPod) **foi descontinuado
@@ -50,7 +50,7 @@ e a infraestrutura foi deletada**. Não recriar essas referências — hoje só 
 - **Zod** para validação
 - **Better Auth** (`@repo/auth`) + `@better-auth/stripe` para auth e billing
 - **Drizzle ORM** (`@repo/db`) sobre Postgres
-- **Stripe** para assinaturas fiat; **NOWPayments** para cripto; PIX (`@repo/payments`)
+- **Stripe** para assinaturas fiat; **BoomFi** para cripto; PIX (`@repo/payments`)
 - **@repo/onlyfans-client** — integração não-oficial com OnlyFans (sessão via cookie/bookmarklet)
 - **@mtkruto/node** — client Telegram (criação/verificação de canal)
 - **Zustand** para state management
@@ -71,7 +71,7 @@ creators-link/
 │   ├── auth/                         # @repo/auth — Better Auth (server + client)
 │   ├── db/                           # @repo/db — Drizzle schema + client
 │   ├── onlyfans-client/              # @repo/onlyfans-client — integração OnlyFans
-│   ├── payments/                     # @repo/payments — Stripe + NOWPayments + plans
+│   ├── payments/                     # @repo/payments — Stripe + plans
 │   ├── shared/                       # @repo/shared — tipos e utilitários
 │   └── ui/                           # @repo/ui — shadcn/ui componentes compartilhados
 ├── scripts/
@@ -102,8 +102,9 @@ creators-link/
 ## packages/payments
 
 - `stripe/` — checkout, Connect (onboarding de criadoras), webhooks, billing portal
-- `nowpayments/` — cobrança cripto (assinatura e charge avulsa)
 - `plans.ts` — definição dos planos (Spark/Creator/Pro)
+
+Nota: a cobrança cripto (BoomFi) vive em `apps/web/src/lib/boomfi.ts`, não neste pacote.
 
 ## packages/onlyfans-client
 
@@ -150,10 +151,10 @@ creators-link/
 /api/creators/[id]/connect                Conectar plataforma externa
 /api/onboarding/*                         Onboarding (Stripe Connect, plataformas, status)
 /api/checkout, /api/checkout/crypto       Checkout fiat/cripto
-/api/webhooks/(stripe|nowpayments|c6bank) Webhooks de pagamento
+/api/webhooks/(stripe|boomfi|c6bank)      Webhooks de pagamento
 /api/onlyfans/*, /api/fansly/*, /api/fanvue/*, /api/patreon/*  Integrações de plataforma
 /api/telegram/*                           Criação/verificação de canal Telegram
-/api/pix/charge, /api/nowpayments/*        Cobrança PIX / cripto avulsa
+/api/pix/charge, /api/boomfi/*             Cobrança PIX / cripto avulsa e recorrente
 /api/dashboard/*                          Saldo Stripe, transações
 /api/upload/(avatar|channel-photo)        Upload de imagens
 /api/domain-detect                        Detecção de domínio customizado
@@ -173,7 +174,8 @@ NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_APP_DOMAIN
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 STRIPE_PRICE_SPARK, STRIPE_PRICE_CREATOR, STRIPE_PRICE_PRO
-NOWPAYMENTS_API_KEY, NOWPAYMENTS_EMAIL, NOWPAYMENTS_PASSWORD, NOWPAYMENTS_IPN_SECRET
+BOOMFI_API_KEY, BOOMFI_WEBHOOK_PUBLIC_KEY
+BOOMFI_PARTNERS_API_KEY, BOOMFI_PARTNERS_SIGNING_SECRET, BOOMFI_PLATFORM_ACCOUNT_REF
 FANVUE_CLIENT_ID, FANVUE_CLIENT_SECRET
 PATREON_CLIENT_ID, PATREON_CLIENT_SECRET
 TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_BOT_TOKEN, TELEGRAM_USER_AUTH_STRING

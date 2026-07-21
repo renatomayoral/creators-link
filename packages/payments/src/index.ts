@@ -27,24 +27,3 @@ export {
   ACCESS_GRANTING_EVENTS,
   ACCESS_REVOKING_EVENTS,
 } from './stripe/webhook'
-
-// ─── NOWPayments (crypto subscriptions) ──────────────────────────────────────
-export {
-  NowPaymentsClient,
-  NowPaymentsError,
-  getNowPayments,
-  isPaidStatus,
-} from './nowpayments/index'
-export type {
-  NowPaymentsConfig,
-  PaymentStatus,
-  CreatePaymentParams,
-  Payment,
-  CreateInvoiceParams,
-  Invoice,
-  CreateSubscriptionPlanParams,
-  SubscriptionPlan,
-  CreateSubscriptionParams,
-  Subscription,
-  IpnPayload,
-} from './nowpayments/types'

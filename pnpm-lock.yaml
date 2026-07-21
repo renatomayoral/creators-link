@@ -44,9 +44,6 @@ importers:
       '@mtkruto/node':
         specifier: ^0.205.0
         version: 0.205.0
-      '@nowpaymentsio/nowpayments-api-js':
-        specifier: ^1.0.5
-        version: 1.0.5
       '@repo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -1301,9 +1298,6 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@nowpaymentsio/nowpayments-api-js@1.0.5':
-    resolution: {integrity: sha512-B9RTq8gDrdV0ccakHWRccxUow1N7xGTz+tgjnKXhL5T/T2dah96Otc5FS1GTWzwtdFmlMgntKQnWmQ5kss4qrQ==}
-
   '@opentelemetry/semantic-conventions@1.43.0':
     resolution: {integrity: sha512-eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg==}
     engines: {node: '>=14'}
@@ -2370,9 +2364,6 @@ packages:
     resolution: {integrity: sha512-s7iGf5GaVMxEG0ENN9x+xTr7GFZCb1ZP/1uATUpCEK2X78nDB3RwbtFCo9pGAf9ru+VwoQ464DkaLEeRM08wJA==}
     engines: {node: '>=4'}
 
-  axios@0.21.4:
-    resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
-
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
     engines: {node: '>= 0.4'}
@@ -2916,15 +2907,6 @@ packages:
 
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
-
-  follow-redirects@1.16.0:
-    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
 
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
@@ -4741,12 +4723,6 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@nowpaymentsio/nowpayments-api-js@1.0.5':
-    dependencies:
-      axios: 0.21.4
-    transitivePeerDependencies:
-      - debug
-
   '@opentelemetry/semantic-conventions@1.43.0': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
@@ -5733,12 +5709,6 @@ snapshots:
 
   axe-core@4.12.1: {}
 
-  axios@0.21.4:
-    dependencies:
-      follow-redirects: 1.16.0
-    transitivePeerDependencies:
-      - debug
-
   axobject-query@4.1.0: {}
 
   balanced-match@1.0.2: {}
@@ -6377,8 +6347,6 @@ snapshots:
       keyv: 4.5.4
 
   flatted@3.4.2: {}
-
-  follow-redirects@1.16.0: {}
 
   for-each@0.3.5:
     dependencies:

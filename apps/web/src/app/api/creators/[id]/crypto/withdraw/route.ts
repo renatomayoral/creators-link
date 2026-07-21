@@ -3,17 +3,21 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { auth } from '@repo/auth'
-import { getCustomerBalance, withdrawFromCustomer } from '@/lib/nowpayments'
+import { getAccountBalances, createCryptoPayout } from '@/lib/boomfi'
 
 const { creator } = schema
 
 const bodySchema = z.object({
   currency: z.string().min(2),
-  amount: z.number().positive().optional(), // if omitted, withdraws full balance
+  chainId: z.number().int().positive(),
+  amount: z.string().optional(), // if omitted, withdraws full balance
 })
 
 // POST /api/creators/[id]/crypto/withdraw
-// Manual withdrawal from Custody balance to creator's external wallet.
+// Manual payout from the creator's BoomFi Virtual Account balance to their
+// external wallet. Deposit splits already route most funds automatically —
+// this covers any balance left in the managed account (e.g. dust, or splits
+// not yet configured for a given chain).
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: req.headers })
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,39 +30,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (!c.nowpaymentsCustomerId)
+  if (!c.boomfiAccountRef)
     return NextResponse.json({ error: 'Crypto não configurado' }, { status: 400 })
   if (!c.cryptoWithdrawAddress)
     return NextResponse.json({ error: 'Endereço de saque não configurado' }, { status: 400 })
 
-  const { currency, amount } = parsed.data
-  const withdrawCurrency = currency || c.cryptoWithdrawCurrency
+  const { currency, chainId } = parsed.data
 
-  if (!withdrawCurrency)
-    return NextResponse.json({ error: 'Moeda de saque não configurada' }, { status: 400 })
-
-  // If no amount specified, withdraw full balance for that currency
-  let withdrawAmount = amount
+  let withdrawAmount = parsed.data.amount
   if (!withdrawAmount) {
-    const balances = await getCustomerBalance(c.nowpaymentsCustomerId)
-    const bal = balances.find(b => b.currency === withdrawCurrency)
+    const balances = await getAccountBalances(c.boomfiAccountRef)
+    const bal = balances.find(b => b.currency === currency)
     if (!bal || bal.balance <= 0)
       return NextResponse.json({ error: 'Saldo insuficiente' }, { status: 400 })
-    withdrawAmount = bal.balance
+    withdrawAmount = String(bal.balance)
   }
 
   try {
-    const result = await withdrawFromCustomer({
-      customerId: c.nowpaymentsCustomerId,
-      address: c.cryptoWithdrawAddress,
-      currency: withdrawCurrency,
+    await createCryptoPayout({
+      accountRef: c.boomfiAccountRef,
       amount: withdrawAmount,
+      currency,
+      chainId,
+      walletAddress: c.cryptoWithdrawAddress,
     })
 
     return NextResponse.json({
-      withdrawalId: result.withdrawalId,
       amount: withdrawAmount,
-      currency: withdrawCurrency,
+      currency,
       address: c.cryptoWithdrawAddress,
     })
   } catch (err) {
@@ -78,11 +77,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (!c.nowpaymentsCustomerId)
+  if (!c.boomfiAccountRef)
     return NextResponse.json({ balances: [] })
 
   try {
-    const balances = await getCustomerBalance(c.nowpaymentsCustomerId)
+    const balances = await getAccountBalances(c.boomfiAccountRef)
     return NextResponse.json({ balances })
   } catch (err) {
     console.error('[crypto/withdraw GET]', err)

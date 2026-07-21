@@ -105,8 +105,8 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 // Creates a single-use Telegram invite link for the creator's VIP channel and
-// emails it to the fan. Mirrors the same Bot API flow used by the NOWPayments
-// webhook (see apps/web/src/app/api/webhooks/nowpayments/route.ts).
+// emails it to the fan. Mirrors the same Bot API flow used by the BoomFi
+// webhook (see apps/web/src/app/api/webhooks/boomfi/route.ts).
 async function grantTelegramAccess(params: {
   creatorId: string
   planId: string

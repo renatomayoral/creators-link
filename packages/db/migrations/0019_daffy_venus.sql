@@ -1,0 +1,1 @@
+ALTER TABLE "vip_plan_price" DROP COLUMN "nowpayments_plans_id";

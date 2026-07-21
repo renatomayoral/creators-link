@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { db, schema } from '@repo/db'
 import { auth } from '@repo/auth'
 import { createVipPrice } from '@repo/payments/stripe/connect'
-import { createSubscriptionPlan } from '@/lib/nowpayments'
+import { createPlan } from '@/lib/boomfi'
 
 const { creator, vipPlan, vipPlanPrice } = schema
 
@@ -53,7 +53,7 @@ const priceSchema = z.object({
   currency: z.string().length(3).toLowerCase(),
   amountCents: z.number().int().min(100),
   provider: z.enum(['stripe', 'stripe_crypto', 'pix_auto', 'pix_manual', 'crypto', 'crypto_sub']),
-  nowpaymentsPlansId: z.string().optional(),
+  boomfiPlanId: z.string().optional(),
 })
 
 const createSchema = z.object({
@@ -98,10 +98,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       intervalDay,
     })
 
-    // Create each price, creating Stripe/NowPayments objects where needed
+    // Create each price, creating Stripe/BoomFi objects where needed
     for (const price of prices) {
       let stripePriceId: string | null = null
-      let nowpaymentsPlansId: string | null = price.nowpaymentsPlansId ?? null
+      let boomfiPlanId: string | null = price.boomfiPlanId ?? null
 
       if (price.provider === 'stripe' && c.stripeAccountId) {
         stripePriceId = await createVipPrice({
@@ -114,18 +114,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         })
       }
 
-      // Auto-create NowPayments Subscription Plan for crypto_sub provider
-      if (price.provider === 'crypto_sub' && !nowpaymentsPlansId && process.env['NOWPAYMENTS_API_KEY']) {
+      // Auto-create BoomFi recurring Plan for crypto_sub provider
+      if (price.provider === 'crypto_sub' && !boomfiPlanId && process.env['BOOMFI_API_KEY']) {
         try {
-          const plan = await createSubscriptionPlan({
-            title: `${title} — ${c.name}`,
+          const plan = await createPlan({
+            name: `${title} — ${c.name}`,
             currency: price.currency,
             amount: price.amountCents / 100,
             intervalDay,
           })
-          nowpaymentsPlansId = plan.id
+          boomfiPlanId = plan.id
         } catch (err) {
-          console.error('[plans] failed to create NowPayments subscription plan:', err)
+          console.error('[plans] failed to create BoomFi plan:', err)
         }
       }
 
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         amountCents: price.amountCents,
         provider: price.provider,
         stripePriceId,
-        nowpaymentsPlansId,
+        boomfiPlanId,
       })
     }
   } catch (err) {

@@ -3,18 +3,22 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
 import { auth } from '@repo/auth'
-import { createCustomer } from '@/lib/nowpayments'
+import { createVirtualAccount } from '@/lib/boomfi'
 
 const { creator } = schema
 
 const bodySchema = z.object({
   cryptoWithdrawAddress: z.string().min(10),
   cryptoWithdrawCurrency: z.string().min(2),
-  cryptoAutoWithdraw: z.boolean(),
+  chainId: z.number().int().positive(),
 })
 
+const PLATFORM_ACCOUNT_REF = process.env['BOOMFI_PLATFORM_ACCOUNT_REF'] ?? ''
+
 // POST /api/creators/[id]/crypto/setup
-// Creates a NowPayments Custody customer for the creator and saves withdrawal config.
+// Creates a BoomFi Partners Virtual Account for the creator with a deposit
+// split: the platform fee routes to our main account automatically at
+// pay-in time, the rest settles directly to the creator's wallet.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: req.headers })
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -27,19 +31,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!c) return NextResponse.json({ error: 'Creator not found' }, { status: 404 })
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { cryptoWithdrawAddress, cryptoWithdrawCurrency, cryptoAutoWithdraw } = parsed.data
+  const { cryptoWithdrawAddress, cryptoWithdrawCurrency, chainId } = parsed.data
 
-  let nowpaymentsCustomerId = c.nowpaymentsCustomerId
+  let boomfiAccountRef = c.boomfiAccountRef
 
-  // Create customer only if not already created
-  if (!nowpaymentsCustomerId) {
-    try {
-      const customer = await createCustomer({ externalId: id, email: session.user.email ?? undefined })
-      nowpaymentsCustomerId = customer.id
-    } catch (err) {
-      console.error('[crypto/setup] failed to create NowPayments customer:', err)
+  if (!boomfiAccountRef) {
+    if (!PLATFORM_ACCOUNT_REF) {
       return NextResponse.json(
-        { error: 'Falha ao criar conta de custódia no NowPayments' },
+        { error: 'BOOMFI_PLATFORM_ACCOUNT_REF não configurado' },
+        { status: 500 },
+      )
+    }
+    try {
+      const feePct = Number(c.platformFeePct ?? '10')
+      const account = await createVirtualAccount({
+        reference: id,
+        name: c.name,
+        chain: { id: chainId, walletAddress: cryptoWithdrawAddress },
+        platformSplit: { percentage: feePct, destinationRef: PLATFORM_ACCOUNT_REF },
+      })
+      boomfiAccountRef = account.reference
+    } catch (err) {
+      console.error('[crypto/setup] failed to create BoomFi virtual account:', err)
+      return NextResponse.json(
+        { error: 'Falha ao criar conta de settlement no BoomFi' },
         { status: 502 },
       )
     }
@@ -48,19 +63,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await db
     .update(creator)
     .set({
-      nowpaymentsCustomerId,
+      boomfiAccountRef,
       cryptoWithdrawAddress,
       cryptoWithdrawCurrency,
-      cryptoAutoWithdraw,
       updatedAt: new Date(),
     })
     .where(eq(creator.id, id))
 
   return NextResponse.json({
-    nowpaymentsCustomerId,
+    boomfiAccountRef,
     cryptoWithdrawAddress,
     cryptoWithdrawCurrency,
-    cryptoAutoWithdraw,
   })
 }
 
@@ -75,9 +88,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (c.userId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   return NextResponse.json({
-    nowpaymentsCustomerId: c.nowpaymentsCustomerId,
+    boomfiAccountRef: c.boomfiAccountRef,
     cryptoWithdrawAddress: c.cryptoWithdrawAddress,
     cryptoWithdrawCurrency: c.cryptoWithdrawCurrency,
-    cryptoAutoWithdraw: c.cryptoAutoWithdraw,
   })
 }

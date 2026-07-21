@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import { db, schema } from '@repo/db'
-import { createSubscription } from '@/lib/nowpayments'
+import { createCustomer, createPayLink } from '@/lib/boomfi'
 import { sendCryptoPaymentLink } from '@/lib/email'
 
 const { vipPlan, vipPlanPrice, vipSubscription, creator } = schema
@@ -13,9 +13,10 @@ const bodySchema = z.object({
   email: z.string().email(),
 })
 
-// POST /api/nowpayments/subscribe
-// Creates a NowPayments recurring subscription for a VIP plan.
-// NowPayments sends a payment link to the fan's email automatically.
+// POST /api/boomfi/subscribe
+// Creates a BoomFi customer + a pay link for the first billing cycle of a
+// recurring VIP plan. BoomFi generates a new pay link for each subsequent
+// cycle via its own reminder flow (see webhooks/boomfi for status updates).
 export async function POST(req: NextRequest) {
   const parsed = bodySchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Bad request' }, { status: 400 })
@@ -25,7 +26,6 @@ export async function POST(req: NextRequest) {
   const plan = await db.query.vipPlan.findFirst({ where: eq(vipPlan.id, planId) })
   if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
-  // Find the crypto price row with a nowpayments_plans_id configured
   const cryptoPrice = await db.query.vipPlanPrice.findFirst({
     where: and(
       eq(vipPlanPrice.planId, planId),
@@ -33,60 +33,56 @@ export async function POST(req: NextRequest) {
     ),
   })
 
-  if (!cryptoPrice?.nowpaymentsPlansId) {
+  if (!cryptoPrice?.boomfiPlanId) {
     return NextResponse.json(
-      { error: 'Este plano não possui subscription plan configurado no NowPayments.' },
+      { error: 'Este plano não possui subscription plan configurado no BoomFi.' },
       { status: 400 },
     )
   }
 
+  const c = await db.query.creator.findFirst({ where: eq(creator.id, plan.creatorId) })
+
   try {
-    const sub = await createSubscription({
-      subscriptionPlanId: cryptoPrice.nowpaymentsPlansId,
-      email,
-    })
+    const customer = await createCustomer({ externalId: `${planId}-${email}`, email })
 
-    // Upsert subscription row
-    const existing = await db.query.vipSubscription.findFirst({
-      where: eq(vipSubscription.nowpaymentsSubscriptionId, sub.id),
-    })
-
-    const c = await db.query.creator.findFirst({ where: eq(creator.id, plan.creatorId) })
-
-    if (!existing) {
-      await db.insert(vipSubscription).values({
-        id: randomUUID(),
-        creatorId: plan.creatorId,
-        planId,
-        fanEmail: email,
-        provider: 'nowpayments',
-        nowpaymentsSubscriptionId: sub.id,
-        status: sub.status === 'PAID' ? 'active' : 'pending',
-        currentPeriodEnd: sub.expireDate ? new Date(sub.expireDate) : null,
-      })
-    }
-
-    // Send payment link email via Resend (we control the template)
     const appUrl = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000'
-    const paymentLink = `${appUrl}/pay/crypto/${sub.id}`
+    const orderId = `${planId}-${Date.now()}`
+    const payLink = await createPayLink({
+      amount: cryptoPrice.amountCents / 100,
+      currency: cryptoPrice.currency,
+      orderId,
+      description: `${c?.name ?? ''} — ${plan.title}`,
+      redirectUrl: `${appUrl}/p/${c?.slug ?? ''}`,
+    })
+
+    await db.insert(vipSubscription).values({
+      id: randomUUID(),
+      creatorId: plan.creatorId,
+      planId,
+      fanEmail: email,
+      provider: 'boomfi',
+      boomfiSubscriptionId: payLink.id,
+      status: 'pending',
+      currentPeriodEnd: null,
+    })
+
     await sendCryptoPaymentLink({
       to: email,
       creatorName: c?.name ?? '',
       planTitle: plan.title,
-      paymentLink,
-      expireDate: sub.expireDate,
+      paymentLink: payLink.url,
     }).catch(err => console.error('[subscribe] failed to send email:', err))
 
     return NextResponse.json({
-      subscriptionId: sub.id,
-      status: sub.status,
-      expireDate: sub.expireDate,
+      subscriptionId: payLink.id,
+      customerId: customer.id,
+      status: payLink.status,
       message: `Link de pagamento enviado para ${email}`,
       creatorName: c?.name,
       planTitle: plan.title,
     })
   } catch (err) {
-    console.error('[POST /api/nowpayments/subscribe]', err)
+    console.error('[POST /api/boomfi/subscribe]', err)
     const message = err instanceof Error ? err.message : 'Erro ao criar assinatura'
     return NextResponse.json({ error: message }, { status: 502 })
   }

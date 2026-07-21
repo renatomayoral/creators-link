@@ -17,7 +17,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.4.0",
     "@mtkruto/node": "^0.205.0",
-    "@nowpaymentsio/nowpayments-api-js": "^1.0.5",
     "@repo/auth": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/onlyfans-client": "workspace:*",
