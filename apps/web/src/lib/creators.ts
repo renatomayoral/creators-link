@@ -75,6 +75,8 @@ export type CreatorDetail = {
   accentColor: string
   customDomain: string | null
   stripeOnboarded: boolean
+  stripePayoutMode: 'own' | 'centralized'
+  payoutHubCreatorId: string | null
   pixKey: string | null
   pixKeyType: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random' | null
   acceptedPayments: string[]

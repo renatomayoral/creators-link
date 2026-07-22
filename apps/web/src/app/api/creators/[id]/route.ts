@@ -98,6 +98,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     accentColor: c.accentColor,
     customDomain: c.customDomain ?? null,
     stripeOnboarded: c.stripeOnboarded,
+    stripePayoutMode: c.stripePayoutMode as CreatorDetail['stripePayoutMode'],
+    payoutHubCreatorId: c.payoutHubCreatorId ?? null,
     pixKey: c.pixKey ?? null,
     pixKeyType: (c.pixKeyType as CreatorDetail['pixKeyType']) ?? null,
     acceptedPayments: c.acceptedPayments,
@@ -130,6 +132,8 @@ const patchSchema = z.object({
   pixKeyType: z.enum(['cpf', 'cnpj', 'email', 'phone', 'random']).nullable().optional(),
   platformFeePct: z.string().regex(/^\d{1,3}(\.\d{1,2})?$/).optional(),
   acceptedPayments: z.array(z.enum(['stripe', 'stripe_crypto', 'pix_manual', 'pix_auto'])).optional(),
+  stripePayoutMode: z.enum(['own', 'centralized']).optional(),
+  payoutHubCreatorId: z.string().nullable().optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -143,6 +147,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const parsed = patchSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  // A hub creator must belong to the same user and can't be the creator itself
+  // — prevents pointing payouts at someone else's account or a self-loop.
+  if (parsed.data.payoutHubCreatorId) {
+    if (parsed.data.payoutHubCreatorId === id) {
+      return NextResponse.json({ error: 'A criadora não pode ser o próprio hub' }, { status: 400 })
+    }
+    const hub = await ownedCreator(parsed.data.payoutHubCreatorId, session.user.id)
+    if (!hub) return NextResponse.json({ error: 'Hub inválido' }, { status: 400 })
   }
 
   await db

@@ -4,6 +4,7 @@ import { db, schema } from '@repo/db'
 import { createCryptoPaymentCheckout } from '@repo/payments/stripe/connect'
 import { sendCryptoRenewalLink } from '@/lib/email'
 import { revokeTelegramAccessForSubscription } from '@/lib/telegram-access'
+import { resolvePayoutAccountId } from '@/lib/payout'
 
 const { vipSubscription, vipPlan, vipPlanPrice, creator, subscription } = schema
 
@@ -107,9 +108,10 @@ export async function GET(req: NextRequest) {
         continue
       }
 
+      const payoutAccountId = await resolvePayoutAccountId(c)
       const platformPlan = await ownerPlatformPlan(c.userId)
       const checkoutSession = await createCryptoPaymentCheckout({
-        creatorAccountId: c.stripeAccountId,
+        creatorAccountId: payoutAccountId,
         creatorPlatformPlan: platformPlan,
         title: plan.title,
         amount: price.amountCents,

@@ -58,6 +58,19 @@ export const creator = pgTable(
     stripeOnboarded: boolean('stripe_onboarded')
       .$defaultFn(() => false)
       .notNull(),
+    /**
+     * Where Stripe card payments settle: 'own' pays out to this creator's own
+     * connected account (default); 'centralized' routes the fan's payment to
+     * another creator (payoutHubCreatorId) owned by the same user instead —
+     * e.g. an agency funneling all its creators' card revenue into one hub
+     * account. Only ever points to another creator with the same userId
+     * (enforced at the API layer, not the DB).
+     */
+    stripePayoutMode: text('stripe_payout_mode')
+      .$defaultFn(() => 'own')
+      .notNull(),
+    /** Hub creator id to settle to when stripePayoutMode = 'centralized' */
+    payoutHubCreatorId: text('payout_hub_creator_id'),
     /** Telegram channel username or id, e.g. "@babibarelli_vip" or "-1001234567890" */
     telegramChannelId: text('telegram_channel_id'),
     /** Human-readable channel title for display, e.g. "VIP da Babi 🔥" */

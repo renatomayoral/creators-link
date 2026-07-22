@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '@repo/db'
 import { createCryptoPaymentCheckout } from '@repo/payments/stripe/connect'
+import { resolvePayoutAccountId } from '@/lib/payout'
 
 const { creator, vipPlan, vipPlanPrice, subscription } = schema
 
@@ -55,11 +56,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Creator cannot accept payments' }, { status: 409 })
   }
 
+  const payoutAccountId = await resolvePayoutAccountId(c)
   const platformPlan = await ownerPlatformPlan(c.userId)
 
   try {
     const checkoutSession = await createCryptoPaymentCheckout({
-      creatorAccountId: c.stripeAccountId,
+      creatorAccountId: payoutAccountId,
       creatorPlatformPlan: platformPlan,
       title: plan.title,
       amount: price.amountCents,
