@@ -68,6 +68,10 @@ export function Monetization({ detail }: Props) {
         )}
       </div>
 
+      <p className="text-muted-foreground mb-3 text-[13px]">
+        {t('creators.stripeExplanation')}
+      </p>
+
       {!detail.stripeOnboarded ? (
         <div className="flex flex-col gap-3 rounded-xl border border-dashed p-4">
           <p className="text-muted-foreground text-[13px]">

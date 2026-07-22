@@ -116,12 +116,16 @@ export function CryptoPanel({ detail }: Props) {
         </button>
       </div>
 
+      <p className="text-muted-foreground mb-3 text-[13px]">
+        Pagamento em criptomoedas (USDT/USDC), processado pela BoomFi. O fã paga direto de uma
+        carteira cripto, sem cartão ou conta bancária. Os valores caem na conta da plataforma e
+        a parte da criadora é repassada manualmente — ainda não há saque automático.
+      </p>
+
       {showConfig && (
         <div className="mb-4 flex flex-col gap-3">
           <p className="text-muted-foreground text-[13px]">
-            Escolha quais redes e moedas essa criadora aceita. Pagamentos caem na conta
-            da plataforma e a parte da criadora é repassada manualmente — não há
-            saque automático via BoomFi ainda.
+            Escolha quais redes e moedas essa criadora aceita.
           </p>
 
           {CRYPTO_CHAINS.map(chain => {

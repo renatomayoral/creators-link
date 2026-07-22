@@ -287,6 +287,7 @@
     "instruction3": "Guarda el dominio de arriba — la página de la creadora comenzará a responder en su dominio.",
     "monetizationTitle": "Monetización · planes VIP",
     "monetizationCard": "Tarjeta de Crédito",
+    "stripeExplanation": "Pago con tarjeta de crédito internacional, procesado por Stripe. La fan paga en cualquier moneda y el valor llega automáticamente a la cuenta bancaria de la creadora, con retiro directo por Stripe — la plataforma solo retiene la tarifa del plan.",
     "paymentsActive": "Pagos activos",
     "notConnected": "No conectado",
     "connectDescription": "Conecta una cuenta de cobro para vender suscripciones VIP. El dinero va directamente a la cuenta de la creadora; la plataforma solo retiene la tarifa del plan.",

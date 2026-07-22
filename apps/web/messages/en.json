@@ -287,6 +287,7 @@
     "instruction3": "Save the domain above — the creator's page will start responding on her domain.",
     "monetizationTitle": "Monetization · VIP plans",
     "monetizationCard": "Credit Card",
+    "stripeExplanation": "International credit card payment, processed by Stripe. Fans pay in any currency and funds land automatically in the creator's bank account, with direct payout through Stripe — the platform only retains the plan fee.",
     "paymentsActive": "Payments active",
     "notConnected": "Not connected",
     "connectDescription": "Connect a payout account to sell VIP subscriptions. Money goes directly to the creator's account; the platform only retains the plan fee.",
