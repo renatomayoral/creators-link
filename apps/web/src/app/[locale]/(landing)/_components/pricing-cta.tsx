@@ -18,6 +18,7 @@ export function PricingCta({
   children: ReactNode
 }) {
   const router = useRouter()
+  const locale = useLocale()
   const { data: session, isPending } = authClient.useSession()
   const [loading, setLoading] = useState(false)
 
@@ -25,9 +26,10 @@ export function PricingCta({
     if (!session) return // not logged in — let the <a href="/login"> navigate normally
     e.preventDefault()
     setLoading(true)
+    const dashboardUrl = `${window.location.origin}/${locale}/settings/billing`
     const { error } = await authClient.subscription.upgrade({
       plan,
-      successUrl: window.location.href,
+      successUrl: dashboardUrl,
       cancelUrl: window.location.href,
     })
     setLoading(false)
