@@ -2,7 +2,15 @@
 
 import { useState } from 'react'
 
-export function SettingsClient({ initialWebhookUrl, apiKeyPrefix }: { initialWebhookUrl: string | null; apiKeyPrefix: string }) {
+export function SettingsClient({
+  initialWebhookUrl,
+  apiKeyPrefix,
+  initialTakeRatePct,
+}: {
+  initialWebhookUrl: string | null
+  apiKeyPrefix: string
+  initialTakeRatePct: string
+}) {
   const [webhookUrl, setWebhookUrl] = useState(initialWebhookUrl ?? '')
   const [savingWebhook, setSavingWebhook] = useState(false)
   const [webhookMessage, setWebhookMessage] = useState('')
@@ -12,6 +20,10 @@ export function SettingsClient({ initialWebhookUrl, apiKeyPrefix }: { initialWeb
 
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null)
   const [regeneratingSecret, setRegeneratingSecret] = useState(false)
+
+  const [takeRatePct, setTakeRatePct] = useState(initialTakeRatePct)
+  const [savingTakeRate, setSavingTakeRate] = useState(false)
+  const [takeRateMessage, setTakeRateMessage] = useState('')
 
   async function saveWebhookUrl(e: React.FormEvent) {
     e.preventDefault()
@@ -33,6 +45,20 @@ export function SettingsClient({ initialWebhookUrl, apiKeyPrefix }: { initialWeb
     const data = await res.json()
     setRegeneratingKey(false)
     if (res.ok) setNewApiKey(data.rawApiKey)
+  }
+
+  async function saveTakeRate(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingTakeRate(true)
+    setTakeRateMessage('')
+    const res = await fetch('/api/dashboard/merchant/take-rate', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ takeRatePct }),
+    })
+    const data = await res.json()
+    setSavingTakeRate(false)
+    setTakeRateMessage(res.ok ? 'Saved.' : (data.error ?? 'Failed to save.'))
   }
 
   async function regenerateWebhookSecret() {
@@ -69,6 +95,33 @@ export function SettingsClient({ initialWebhookUrl, apiKeyPrefix }: { initialWeb
             {regeneratingKey ? 'Regenerating…' : 'Regenerate API key'}
           </button>
         )}
+      </section>
+
+      <section className="space-y-3 rounded-lg border border-neutral-800 p-6">
+        <h2 className="font-semibold">Take rate</h2>
+        <p className="text-sm text-neutral-400">
+          Percentage of each charge routed to the platform wallet; the remainder settles to the plan's merchant destination
+          wallet.
+        </p>
+        <form onSubmit={saveTakeRate} className="flex items-end gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm text-neutral-300">Take rate (%)</label>
+            <input
+              value={takeRatePct}
+              onChange={(e) => setTakeRatePct(e.target.value)}
+              placeholder="2.50"
+              className="w-32 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-white placeholder:text-neutral-600"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={savingTakeRate}
+            className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+          >
+            {savingTakeRate ? 'Saving…' : 'Save'}
+          </button>
+        </form>
+        {takeRateMessage && <p className="text-sm text-neutral-400">{takeRateMessage}</p>}
       </section>
 
       <section className="space-y-3 rounded-lg border border-neutral-800 p-6">

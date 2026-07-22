@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { and, lte, or, eq } from 'drizzle-orm'
+import { and, lte, or, eq, isNotNull } from 'drizzle-orm'
 import { db, schema } from '@/db'
 import { runChargeCycle } from '@/lib/cycle'
 import { retryDueWebhookDeliveries } from '@/lib/webhooks'
+import { readOperatorNativeBalance } from '@/lib/onchain'
 import { env } from '@/env'
 
-const { subscription } = schema
+const { subscription, charge } = schema
 
 // GraceDays: how long a past_due subscription is retried before we give up
 // and mark it canceled.
 const GRACE_DAYS = 7
 const BATCH_SIZE = 200
+
+// Minimum native gas balance the operator wallet should hold per chain before
+// we flag it as running low — rough guardrail, not chain-specific gas pricing.
+const MIN_OPERATOR_GAS_WEI = 10_000_000_000_000_000n // 0.01 ETH-equivalent
 
 // GET /api/cron/charge-due — Authorization: Bearer <CRON_SECRET>.
 // Finds subscriptions due for billing, runs their on-chain charge cycle
@@ -71,11 +76,38 @@ export async function GET(req: NextRequest) {
 
   const { retried } = await retryDueWebhookDeliveries()
 
+  // Reconciliation: charges where the pull succeeded but a later transfer leg
+  // failed. Funds are sitting in the operator wallet across every merchant —
+  // surface it in the cron response and log it so it isn't silently missed.
+  const stuckCharges = await db.query.charge.findMany({
+    where: and(eq(charge.status, 'pulled'), isNotNull(charge.failureReason)),
+  })
+  if (stuckCharges.length > 0) {
+    console.error(`[splitfy cron] ${stuckCharges.length} charge(s) stuck after pull, needing manual reconciliation`)
+  }
+
+  // Gas monitoring: check the operator's native balance on every chain that
+  // had at least one charge processed this run.
+  const lowGasChains: number[] = []
+  for (const chainId of byChain.keys()) {
+    try {
+      const balance = await readOperatorNativeBalance(chainId)
+      if (balance < MIN_OPERATOR_GAS_WEI) {
+        lowGasChains.push(chainId)
+        console.error(`[splitfy cron] operator gas low on chain ${chainId}: ${balance.toString()} wei`)
+      }
+    } catch (err) {
+      console.error(`[splitfy cron] failed to read operator gas balance on chain ${chainId}:`, err)
+    }
+  }
+
   return NextResponse.json({
     processed: due.length,
     settled,
     failed,
     canceledForGrace: overdue.length,
     retriedWebhooks: retried,
+    stuckCharges: stuckCharges.length,
+    lowGasChains,
   })
 }

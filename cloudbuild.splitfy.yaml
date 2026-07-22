@@ -1,0 +1,71 @@
+steps:
+  # ─── Build Next.js Docker image ───────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    env:
+      - 'DOCKER_BUILDKIT=1'
+    args:
+      - build
+      - '--file=Dockerfile.splitfy'
+      - '--tag=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy:$SHORT_SHA'
+      - '--tag=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy:latest'
+      - '--cache-from=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy:latest'
+      - '--build-arg=BUILDKIT_INLINE_CACHE=1'
+      - '.'
+
+  # ─── Push to Artifact Registry ────────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push
+    waitFor: [build]
+    args:
+      - push
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy'
+
+  # ─── Deploy to Cloud Run ──────────────────────────────────────────────────
+  # NOTE: requires cloudrun-splitfy@$PROJECT_ID.iam.gserviceaccount.com to
+  # exist first (dedicated service account — kept separate from cloudrun-web@
+  # since splitfy holds an on-chain operator private key, a different blast
+  # radius than the web app's credentials), and the secrets listed in
+  # --set-secrets to already exist in Secret Manager.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: deploy
+    waitFor: [push]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - splitfy
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--service-account=cloudrun-splitfy@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--concurrency=80'
+      - '--timeout=60s'
+      - '--allow-unauthenticated'
+      # SPLITFY_APP_URL / SPLITFY_BETTER_AUTH_URL: update after the first deploy
+      # once the Cloud Run *.run.app URL (or a custom domain) is known — a
+      # placeholder here would produce wrong subscribeUrl links until fixed.
+      - >-
+        --set-env-vars=NODE_ENV=production,GCP_PROJECT=$PROJECT_ID,SPLITFY_APP_URL=https://splitfy-REPLACE.a.run.app,SPLITFY_BETTER_AUTH_URL=https://splitfy-REPLACE.a.run.app
+      # CRON_SECRET here maps to the Secret Manager secret named SPLITFY_CRON_SECRET —
+      # a value distinct from apps/web's CRON_SECRET, so the two cron jobs don't
+      # share a blast radius. The env var name inside the container is still
+      # CRON_SECRET (what src/env.ts reads); only the Secret Manager resource name differs.
+      - >-
+        --set-secrets=SPLITFY_DATABASE_URL=SPLITFY_DATABASE_URL:latest,OPERATOR_PRIVATE_KEY=OPERATOR_PRIVATE_KEY:latest,PLATFORM_WALLET_ADDRESS=PLATFORM_WALLET_ADDRESS:latest,SPLITFY_BETTER_AUTH_SECRET=SPLITFY_BETTER_AUTH_SECRET:latest,CRON_SECRET=SPLITFY_CRON_SECRET:latest
+
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+  dynamic_substitutions: true
+
+timeout: 1200s
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/creators-link/splitfy:latest'
