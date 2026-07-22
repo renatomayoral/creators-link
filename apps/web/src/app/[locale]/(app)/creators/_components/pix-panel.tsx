@@ -102,6 +102,12 @@ export function PixPanel({ detail }: Props) {
 
       {showConfig && (
         <div className="flex flex-col gap-3">
+          <p className="text-muted-foreground text-[13px]">
+            Pix é o sistema de pagamentos instantâneos do Banco Central do Brasil — o fã transfere
+            direto da conta bancária ou carteira digital dele, sem precisar de cartão de crédito.
+            Só funciona para recebimentos em reais (BRL).
+          </p>
+
           <div className="rounded-xl border p-3">
             <div className="flex flex-col gap-1">
               <Label className="text-[12px]">Chave Pix</Label>
