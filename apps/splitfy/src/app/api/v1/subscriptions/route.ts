@@ -3,6 +3,7 @@ import { parseUnits } from 'viem'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@/db'
 import { authenticateMerchant } from '@/lib/api-key'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { createSubscriptionSchema } from '@/lib/validation'
 import { getToken } from '@/lib/crypto-coins'
 import { getOperatorAddress } from '@/lib/operator'
@@ -17,10 +18,16 @@ const { plan, subscription } = schema
 // (MaxUint256) grant to the operator wallet.
 const ALLOWANCE_CYCLES = 12
 
+const SUBSCRIPTIONS_RATE_LIMIT = 60 // requests per minute per merchant
+
 // POST /api/v1/subscriptions — create a pending subscription for a plan.
 export async function POST(req: NextRequest) {
   const merchant = await authenticateMerchant(req)
   if (!merchant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const rl = await checkRateLimit(`apikey:${merchant.id}:subscriptions`, SUBSCRIPTIONS_RATE_LIMIT)
+  const limited = rateLimitResponse(rl)
+  if (limited) return limited
 
   const body = await req.json().catch(() => null)
   const parsed = createSubscriptionSchema.safeParse(body)

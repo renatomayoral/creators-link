@@ -57,6 +57,18 @@ export const EVM_CHAINS: EvmChain[] = [
     iconId: 'base',
     tokens: [{ key: 'usdc-base', ticker: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 }],
   },
+  // Testnet — Base Sepolia. Only present so TESTNET.md's dry-run is directly
+  // executable without further code changes. Never used for real charges;
+  // does not appear as a mainnet option in merchant-facing catalogs/UI.
+  {
+    chainId: 84532,
+    label: 'Base Sepolia (testnet)',
+    iconId: 'base',
+    tokens: [
+      // Circle's official Base Sepolia USDC faucet contract.
+      { key: 'usdc-base-sepolia', ticker: 'USDC', address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', decimals: 6 },
+    ],
+  },
 ]
 
 export const EVM_TOKENS = EVM_CHAINS.flatMap((chain) =>

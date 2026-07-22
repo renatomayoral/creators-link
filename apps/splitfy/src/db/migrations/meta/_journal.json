@@ -8,6 +8,20 @@
       "when": 1784735339830,
       "tag": "0000_late_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784755967066,
+      "tag": "0001_black_spitfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784757166166,
+      "tag": "0002_gigantic_the_spike",
+      "breakpoints": true
     }
   ]
 }

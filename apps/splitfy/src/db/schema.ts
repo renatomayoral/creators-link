@@ -11,6 +11,8 @@ export const merchant = pgTable(
   'splitfy_merchant',
   {
     id: text('id').primaryKey(),
+    /** The dashboard user who owns/manages this merchant. Null for merchants seeded outside the dashboard. */
+    ownerUserId: text('owner_user_id').references(() => user.id, { onDelete: 'set null' }),
     name: text('name').notNull(),
     /** sha256 of the raw API key. Raw key is shown once at creation, never stored. */
     apiKeyHash: text('api_key_hash').notNull(),
@@ -36,7 +38,11 @@ export const merchant = pgTable(
       .$defaultFn(() => new Date())
       .notNull(),
   },
-  (t) => [uniqueIndex('splitfy_merchant_api_key_hash_idx').on(t.apiKeyHash), index('splitfy_merchant_api_key_prefix_idx').on(t.apiKeyPrefix)],
+  (t) => [
+    uniqueIndex('splitfy_merchant_api_key_hash_idx').on(t.apiKeyHash),
+    index('splitfy_merchant_api_key_prefix_idx').on(t.apiKeyPrefix),
+    index('splitfy_merchant_owner_user_id_idx').on(t.ownerUserId),
+  ],
 )
 
 // ─── Plan — a recurring subscription offer created by a merchant ─────────────
@@ -196,6 +202,26 @@ export const webhookDelivery = pgTable(
   ],
 )
 
+// ─── Rate limit — fixed-window counter for public routes ─────────────────────
+// Backed by Postgres (no Redis/Upstash dependency) since expected volume is
+// low initially. `key` is caller-defined, e.g. `apikey:{merchantId}` or
+// `ip:{address}`; each request does a read-then-increment within the current
+// window, so there's a small race window under heavy concurrent load — this
+// is a blunt abuse guard, not a precise limiter.
+
+export const rateLimit = pgTable(
+  'splitfy_rate_limit',
+  {
+    id: text('id').primaryKey(),
+    key: text('key').notNull(),
+    windowStart: timestamp('window_start').notNull(),
+    count: integer('count')
+      .$defaultFn(() => 0)
+      .notNull(),
+  },
+  (t) => [uniqueIndex('splitfy_rate_limit_key_window_idx').on(t.key, t.windowStart)],
+)
+
 // ─── Better Auth (merchant dashboard) — default table names required ─────────
 
 export const user = pgTable('user', {
@@ -260,6 +286,7 @@ export const schema = {
   subscription,
   charge,
   webhookDelivery,
+  rateLimit,
   user,
   session,
   account,

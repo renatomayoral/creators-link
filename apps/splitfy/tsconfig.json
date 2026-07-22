@@ -8,6 +8,8 @@
     "incremental": true,
     "declaration": false,
     "declarationMap": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"]

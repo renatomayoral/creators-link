@@ -1,4 +1,4 @@
-import { arbitrum, base, bsc, polygon, type Chain } from 'viem/chains'
+import { arbitrum, base, baseSepolia, bsc, polygon, type Chain } from 'viem/chains'
 import { env } from '@/env'
 
 // Number of confirmations to wait for before treating a leg as final. Tuned
@@ -10,6 +10,7 @@ export const CONFIRMATIONS: Record<number, number> = {
   42161: 1, // Arbitrum
   56: 5, // BNB Smart Chain
   8453: 3, // Base
+  84532: 1, // Base Sepolia (testnet) — fast finality, no real value at risk
 }
 
 const CHAIN_BY_ID: Record<number, Chain> = {
@@ -17,6 +18,7 @@ const CHAIN_BY_ID: Record<number, Chain> = {
   42161: arbitrum,
   56: bsc,
   8453: base,
+  84532: baseSepolia,
 }
 
 export function getViemChain(chainId: number): Chain {

@@ -1,6 +1,16 @@
-import { randomBytes, createHash } from 'node:crypto'
-import { db, schema } from '../src/db'
-import { newId } from '../src/lib/ids'
+import { randomBytes, createHash, randomUUID } from 'node:crypto'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import { schema } from '../src/db/schema.ts'
+
+function newId(prefix: string): string {
+  return `${prefix}_${randomUUID().replace(/-/g, '')}`
+}
+
+const connectionString = process.env['SPLITFY_DATABASE_URL']
+if (!connectionString) throw new Error('SPLITFY_DATABASE_URL environment variable is not set')
+const client = postgres(connectionString, { prepare: false, max: 1 })
+const db = drizzle(client, { schema })
 
 // Creates the first merchant (creatorslink) and prints its raw API key once.
 // Usage: pnpm db:seed-merchant -- --name "Creators Link" --takeRate 2.5 --webhookUrl https://...
@@ -36,10 +46,12 @@ async function main() {
   console.log('Merchant created:', created?.id)
   console.log('Raw API key (store this now, it will not be shown again):', rawKey)
   console.log('Webhook secret (share with the merchant to verify webhooks):', webhookSecret)
+  await client.end()
   process.exit(0)
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error(err)
+  await client.end()
   process.exit(1)
 })

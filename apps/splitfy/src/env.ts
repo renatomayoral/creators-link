@@ -35,6 +35,7 @@ export const env = {
       42161: 'RPC_URL_ARBITRUM',
       8453: 'RPC_URL_BASE',
       56: 'RPC_URL_BSC',
+      84532: 'RPC_URL_BASE_SEPOLIA',
     }
     const key = byChain[chainId]
     return key ? optional(key) : undefined

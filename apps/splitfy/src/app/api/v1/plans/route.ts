@@ -2,16 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { db, schema } from '@/db'
 import { authenticateMerchant } from '@/lib/api-key'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { createPlanSchema } from '@/lib/validation'
 import { getToken } from '@/lib/crypto-coins'
 import { newId } from '@/lib/ids'
 
 const { plan } = schema
 
+const PLANS_RATE_LIMIT = 60 // requests per minute per merchant
+
 // POST /api/v1/plans — create a recurring plan for the authenticated merchant.
 export async function POST(req: NextRequest) {
   const merchant = await authenticateMerchant(req)
   if (!merchant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const rl = await checkRateLimit(`apikey:${merchant.id}:plans`, PLANS_RATE_LIMIT)
+  const limited = rateLimitResponse(rl)
+  if (limited) return limited
 
   const body = await req.json().catch(() => null)
   const parsed = createPlanSchema.safeParse(body)
@@ -43,6 +50,10 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const merchant = await authenticateMerchant(req)
   if (!merchant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const rl = await checkRateLimit(`apikey:${merchant.id}:plans`, PLANS_RATE_LIMIT)
+  const limited = rateLimitResponse(rl)
+  if (limited) return limited
 
   const plans = await db.query.plan.findMany({ where: eq(plan.merchantId, merchant.id) })
   return NextResponse.json({ plans })
