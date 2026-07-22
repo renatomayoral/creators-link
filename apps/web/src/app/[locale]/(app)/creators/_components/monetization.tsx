@@ -53,7 +53,9 @@ export function Monetization({ detail }: Props) {
     <div className="border-t px-5 py-4">
       <div className="mb-3 flex items-center gap-2">
         <Wallet className="text-muted-foreground h-4 w-4" />
-        <span className="text-[13px] font-semibold">{t('creators.monetizationTitle')}</span>
+        <span className="text-[13px] font-semibold">
+          {t('creators.monetizationCard')}
+        </span>
         {detail.stripeOnboarded ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
             <Check className="h-3 w-3" />
@@ -77,7 +79,7 @@ export function Monetization({ detail }: Props) {
             ) : (
               <Wallet className="mr-1.5 h-4 w-4" />
             )}
-            {t('creators.connectPaymentsButton')}
+            {t('creators.connectStripeButton')}
           </Button>
         </div>
       ) : (
