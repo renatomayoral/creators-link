@@ -75,6 +75,9 @@ export type CreatorDetail = {
   accentColor: string
   customDomain: string | null
   stripeOnboarded: boolean
+  pixKey: string | null
+  pixKeyType: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random' | null
+  acceptedPayments: string[]
   status: 'live' | 'draft'
   totalClicks30d: number
   /** 14 daily click counts (oldest → today) */
