@@ -5,11 +5,11 @@ FROM node:22-alpine AS deps
 RUN corepack enable && corepack prepare pnpm@11.3.0 --activate
 WORKDIR /app
 
-# Copy only manifests first for layer caching. splitfy depends on no
+# Copy only manifests first for layer caching. tidepay depends on no
 # @repo/* business packages (by design, for standalone extraction), so no
 # packages/*/package.json need to be copied here.
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY apps/splitfy/package.json ./apps/splitfy/
+COPY apps/tidepay/package.json ./apps/tidepay/
 
 RUN pnpm install --frozen-lockfile
 
@@ -19,7 +19,7 @@ RUN corepack enable && corepack prepare pnpm@11.3.0 --activate
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/splitfy/node_modules ./apps/splitfy/node_modules
+COPY --from=deps /app/apps/tidepay/node_modules ./apps/tidepay/node_modules
 COPY . .
 
 # Only public vars at build time — secrets are injected at runtime by Cloud Run
@@ -32,9 +32,9 @@ ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=$NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 # runtime via Secret Manager. Written to .env.production because Next.js'
 # page-data-collection workers only inherit vars it loads from .env files
 # itself, not arbitrary Docker ENV / process.env.
-RUN printf 'SPLITFY_DATABASE_URL=postgresql://placeholder:placeholder@localhost/placeholder\nOPERATOR_PRIVATE_KEY=0x1111111111111111111111111111111111111111111111111111111111111111\nPLATFORM_WALLET_ADDRESS=0x1111111111111111111111111111111111111111\nSPLITFY_BETTER_AUTH_SECRET=placeholder-build-secret\nCRON_SECRET=placeholder-build-secret\n' > apps/splitfy/.env.production
+RUN printf 'TIDEPAY_DATABASE_URL=postgresql://placeholder:placeholder@localhost/placeholder\nOPERATOR_PRIVATE_KEY=0x1111111111111111111111111111111111111111111111111111111111111111\nPLATFORM_WALLET_ADDRESS=0x1111111111111111111111111111111111111111\nTIDEPAY_BETTER_AUTH_SECRET=placeholder-build-secret\nCRON_SECRET=placeholder-build-secret\n' > apps/tidepay/.env.production
 
-RUN pnpm turbo build --filter=@repo/splitfy
+RUN pnpm turbo build --filter=@repo/tidepay
 
 # ─── Stage 3: runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -48,11 +48,11 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy standalone output
-COPY --from=builder --chown=nextjs:nodejs /app/apps/splitfy/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/splitfy/.next/static ./apps/splitfy/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/splitfy/public ./apps/splitfy/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/tidepay/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/tidepay/.next/static ./apps/tidepay/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/tidepay/public ./apps/tidepay/public
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "apps/splitfy/server.js"]
+CMD ["node", "apps/tidepay/server.js"]
