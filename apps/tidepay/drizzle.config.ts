@@ -8,6 +8,6 @@ export default defineConfig({
   schema: ['./src/db/schema.ts'],
   out: './src/db/migrations',
   dbCredentials: {
-    url: process.env['SPLITFY_DATABASE_URL'] ?? '',
+    url: process.env['TIDEPAY_DATABASE_URL'] ?? '',
   },
 })

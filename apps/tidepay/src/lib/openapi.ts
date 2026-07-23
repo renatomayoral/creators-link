@@ -17,7 +17,7 @@ export function buildOpenApiDocument() {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'Splitfy API',
+      title: 'Tidepay API',
       version: '1.0.0',
       description:
         'Recurring crypto subscription infrastructure with automatic payment splits. ' +
@@ -70,7 +70,7 @@ export function buildOpenApiDocument() {
           summary: 'Create a subscription',
           description:
             'Returns a subscribeUrl to redirect the subscriber to, where they connect their wallet and grant the ' +
-            'ERC-20 allowance splitfy needs to run recurring pulls.',
+            'ERC-20 allowance tidepay needs to run recurring pulls.',
           requestBody: {
             required: true,
             content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateSubscriptionRequest' } } },
@@ -97,10 +97,10 @@ export function buildOpenApiDocument() {
     },
     'x-webhooks': {
       description:
-        'Splitfy sends signed webhooks to your configured webhookUrl for: subscription.created, ' +
+        'Tidepay sends signed webhooks to your configured webhookUrl for: subscription.created, ' +
         'subscription.active, subscription.canceled, payment.succeeded, payment.failed. ' +
         'Verify each request with HMAC-SHA256: signature = HMAC-SHA256(webhookSecret, `${timestamp}.${rawBody}`), ' +
-        'sent as the X-Splitfy-Timestamp and X-Splitfy-Signature headers.',
+        'sent as the X-Tidepay-Timestamp and X-Tidepay-Signature headers.',
       events: ['subscription.created', 'subscription.active', 'subscription.canceled', 'payment.succeeded', 'payment.failed'],
     },
   }

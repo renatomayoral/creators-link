@@ -1,14 +1,14 @@
 import { pgTable, text, timestamp, integer, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core'
 
-// splitfy owns this schema in full (no @repo/db import), so it can be lifted
-// into a standalone service later. Business tables are prefixed `splitfy_`.
+// tidepay owns this schema in full (no @repo/db import), so it can be lifted
+// into a standalone service later. Business tables are prefixed `tidepay_`.
 // Better Auth tables keep their default names (the adapter expects them) and
 // are scaffolded here for the future merchant dashboard.
 
-// ─── Merchant — a tenant consuming splitfy (creatorslink is the first) ───────
+// ─── Merchant — a tenant consuming tidepay (creatorslink is the first) ───────
 
 export const merchant = pgTable(
-  'splitfy_merchant',
+  'tidepay_merchant',
   {
     id: text('id').primaryKey(),
     /** The dashboard user who owns/manages this merchant. Null for merchants seeded outside the dashboard. */
@@ -39,16 +39,16 @@ export const merchant = pgTable(
       .notNull(),
   },
   (t) => [
-    uniqueIndex('splitfy_merchant_api_key_hash_idx').on(t.apiKeyHash),
-    index('splitfy_merchant_api_key_prefix_idx').on(t.apiKeyPrefix),
-    index('splitfy_merchant_owner_user_id_idx').on(t.ownerUserId),
+    uniqueIndex('tidepay_merchant_api_key_hash_idx').on(t.apiKeyHash),
+    index('tidepay_merchant_api_key_prefix_idx').on(t.apiKeyPrefix),
+    index('tidepay_merchant_owner_user_id_idx').on(t.ownerUserId),
   ],
 )
 
 // ─── Plan — a recurring subscription offer created by a merchant ─────────────
 
 export const plan = pgTable(
-  'splitfy_plan',
+  'tidepay_plan',
   {
     id: text('id').primaryKey(),
     merchantId: text('merchant_id')
@@ -76,13 +76,13 @@ export const plan = pgTable(
       .$defaultFn(() => new Date())
       .notNull(),
   },
-  (t) => [index('splitfy_plan_merchant_id_idx').on(t.merchantId)],
+  (t) => [index('tidepay_plan_merchant_id_idx').on(t.merchantId)],
 )
 
 // ─── Subscription — a subscriber wallet's recurring commitment to a plan ─────
 
 export const subscription = pgTable(
-  'splitfy_subscription',
+  'tidepay_subscription',
   {
     id: text('id').primaryKey(),
     merchantId: text('merchant_id')
@@ -113,10 +113,10 @@ export const subscription = pgTable(
       .notNull(),
   },
   (t) => [
-    index('splitfy_subscription_merchant_id_idx').on(t.merchantId),
-    index('splitfy_subscription_status_idx').on(t.status),
-    index('splitfy_subscription_current_period_end_idx').on(t.currentPeriodEnd),
-    uniqueIndex('splitfy_subscription_plan_wallet_idx').on(t.planId, t.subscriberWallet),
+    index('tidepay_subscription_merchant_id_idx').on(t.merchantId),
+    index('tidepay_subscription_status_idx').on(t.status),
+    index('tidepay_subscription_current_period_end_idx').on(t.currentPeriodEnd),
+    uniqueIndex('tidepay_subscription_plan_wallet_idx').on(t.planId, t.subscriberWallet),
   ],
 )
 
@@ -125,7 +125,7 @@ export const subscription = pgTable(
 // the staged status makes a crashed/retried cycle resumable without re-pulling.
 
 export const charge = pgTable(
-  'splitfy_charge',
+  'tidepay_charge',
   {
     id: text('id').primaryKey(),
     subscriptionId: text('subscription_id')
@@ -163,16 +163,16 @@ export const charge = pgTable(
       .notNull(),
   },
   (t) => [
-    uniqueIndex('splitfy_charge_idempotency_key_idx').on(t.idempotencyKey),
-    index('splitfy_charge_subscription_id_idx').on(t.subscriptionId),
-    index('splitfy_charge_status_idx').on(t.status),
+    uniqueIndex('tidepay_charge_idempotency_key_idx').on(t.idempotencyKey),
+    index('tidepay_charge_subscription_id_idx').on(t.subscriptionId),
+    index('tidepay_charge_status_idx').on(t.status),
   ],
 )
 
 // ─── Webhook delivery — outbound signed events to merchants, with retries ────
 
 export const webhookDelivery = pgTable(
-  'splitfy_webhook_delivery',
+  'tidepay_webhook_delivery',
   {
     id: text('id').primaryKey(),
     merchantId: text('merchant_id')
@@ -196,9 +196,9 @@ export const webhookDelivery = pgTable(
       .notNull(),
   },
   (t) => [
-    index('splitfy_webhook_delivery_merchant_id_idx').on(t.merchantId),
-    index('splitfy_webhook_delivery_status_idx').on(t.status),
-    index('splitfy_webhook_delivery_next_retry_at_idx').on(t.nextRetryAt),
+    index('tidepay_webhook_delivery_merchant_id_idx').on(t.merchantId),
+    index('tidepay_webhook_delivery_status_idx').on(t.status),
+    index('tidepay_webhook_delivery_next_retry_at_idx').on(t.nextRetryAt),
   ],
 )
 
@@ -210,7 +210,7 @@ export const webhookDelivery = pgTable(
 // is a blunt abuse guard, not a precise limiter.
 
 export const rateLimit = pgTable(
-  'splitfy_rate_limit',
+  'tidepay_rate_limit',
   {
     id: text('id').primaryKey(),
     key: text('key').notNull(),
@@ -219,7 +219,7 @@ export const rateLimit = pgTable(
       .$defaultFn(() => 0)
       .notNull(),
   },
-  (t) => [uniqueIndex('splitfy_rate_limit_key_window_idx').on(t.key, t.windowStart)],
+  (t) => [uniqueIndex('tidepay_rate_limit_key_window_idx').on(t.key, t.windowStart)],
 )
 
 // ─── Better Auth (merchant dashboard) — default table names required ─────────

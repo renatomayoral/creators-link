@@ -3,7 +3,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { env } from '@/env'
 import { getViemChain, getRpcUrl } from './chains'
 
-// The operator is splitfy's hot signer: subscribers grant it an ERC-20
+// The operator is tidepay's hot signer: subscribers grant it an ERC-20
 // allowance, and each billing cycle it pulls the gross amount then forwards
 // the merchant + platform shares. It holds funds only transiently in transit
 // within a single cycle. See CLAUDE.md-equivalent security notes in the plan:

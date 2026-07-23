@@ -36,7 +36,7 @@ export function OnboardingForm() {
         <p className="font-medium text-green-400">Merchant created.</p>
         <p className="text-sm text-neutral-400">
           Copy your API key now — it will not be shown again. Use it in the <code>X-API-Key</code> header when calling the
-          splitfy REST API.
+          tidepay REST API.
         </p>
         <code className="block break-all rounded-md bg-neutral-900 p-3 text-sm">{rawApiKey}</code>
         <button onClick={() => router.push('/dashboard')} className="rounded-md bg-white px-4 py-2 font-medium text-black">

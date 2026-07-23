@@ -10,7 +10,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Splitfy',
+  title: 'Tidepay',
   description: 'Recurring crypto subscription infrastructure with automatic payment splits.',
 }
 

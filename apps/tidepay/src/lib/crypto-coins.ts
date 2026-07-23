@@ -1,4 +1,4 @@
-// Catalog of EVM chains + stablecoins splitfy accepts, mirroring the coverage
+// Catalog of EVM chains + stablecoins tidepay accepts, mirroring the coverage
 // of apps/web's crypto-coins.ts. Unlike that catalog, this one carries the
 // ERC-20 contract address + decimals for each token — required for viem
 // reads/writes (allowance, balanceOf, transfer, transferFrom).

@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
         <nav className="flex items-center gap-6 text-sm">
           <Link href="/dashboard" className="font-semibold">
-            Splitfy
+            Tidepay
           </Link>
           <Link href="/dashboard/plans" className="text-neutral-400 hover:text-white">
             Plans

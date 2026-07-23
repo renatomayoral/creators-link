@@ -1,4 +1,4 @@
-# Splitfy — testnet dry-run
+# Tidepay — testnet dry-run
 
 Roteiro para validar o ciclo de cobrança (`runChargeCycle`) contra uma blockchain real, sem
 arriscar fundos. Usa **Base Sepolia** (chainId `84532`) — já está no catálogo
@@ -33,11 +33,11 @@ Ambas as wallets precisam de ETH de Base Sepolia para pagar gás (`approve`, `tr
 ## 4. Subir o app localmente com a chave da operadora de teste
 
 ```bash
-cd apps/splitfy
+cd apps/tidepay
 OPERATOR_PRIVATE_KEY=0x<chave-da-wallet-operadora-de-teste> \
 PLATFORM_WALLET_ADDRESS=0x<qualquer-endereco-de-teste-para-receber-a-taxa> \
 CRON_SECRET=test-cron-secret \
-SPLITFY_APP_URL=http://localhost:3001 \
+TIDEPAY_APP_URL=http://localhost:3001 \
 pnpm dev
 ```
 
@@ -61,15 +61,15 @@ curl -H "Authorization: Bearer test-cron-secret" http://localhost:3001/api/cron/
 
 ## 7. Verificar o resultado
 
-- `splitfy_charge` da assinatura deve chegar a `settled`, com `pullTxHash`,
+- `tidepay_charge` da assinatura deve chegar a `settled`, com `pullTxHash`,
   `merchantTransferTxHash` e `platformTransferTxHash` preenchidos.
 - Confira os 3 hashes em https://sepolia.basescan.org — a wallet subscriber deve ter sido
   debitada do valor bruto; a wallet merchant e a wallet plataforma devem ter recebido as frações
   corretas (bruto − taxa, e a taxa, respectivamente).
-- `splitfy_subscription.status` deve virar `active`, com `currentPeriodEnd` avançado por
+- `tidepay_subscription.status` deve virar `active`, com `currentPeriodEnd` avançado por
   `intervalDay`.
 - Se `webhookUrl` estiver configurada (ex. um endpoint temporário do https://webhook.site),
-  confira que o evento `payment.succeeded` chegou com `X-Splitfy-Signature` válido.
+  confira que o evento `payment.succeeded` chegou com `X-Tidepay-Signature` válido.
 
 ## 8. Testar o caminho de falha
 

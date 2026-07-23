@@ -6,14 +6,14 @@ type DB = ReturnType<typeof drizzle<typeof schema>>
 
 // Use globalThis to survive Next.js hot-module reloads in dev, preventing a new
 // pool being created on every file change. Mirrors the apps/web db proxy.
-const globalForDb = globalThis as unknown as { _splitfyDb: DB | undefined }
+const globalForDb = globalThis as unknown as { _tidepayDb: DB | undefined }
 
 function getDb(): DB {
-  if (globalForDb._splitfyDb) return globalForDb._splitfyDb
+  if (globalForDb._tidepayDb) return globalForDb._tidepayDb
 
-  const connectionString = process.env['SPLITFY_DATABASE_URL']
+  const connectionString = process.env['TIDEPAY_DATABASE_URL']
   if (!connectionString) {
-    throw new Error('SPLITFY_DATABASE_URL environment variable is not set')
+    throw new Error('TIDEPAY_DATABASE_URL environment variable is not set')
   }
 
   const client = postgres(connectionString, {
@@ -22,8 +22,8 @@ function getDb(): DB {
     idle_timeout: 20,
     connect_timeout: 30,
   })
-  globalForDb._splitfyDb = drizzle(client, { schema })
-  return globalForDb._splitfyDb
+  globalForDb._tidepayDb = drizzle(client, { schema })
+  return globalForDb._tidepayDb
 }
 
 // Proxy that defers connection until first property access.

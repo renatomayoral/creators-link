@@ -64,8 +64,8 @@ async function attemptDelivery(
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-splitfy-timestamp': timestamp,
-        'x-splitfy-signature': signature,
+        'x-tidepay-timestamp': timestamp,
+        'x-tidepay-signature': signature,
       },
       body: rawBody,
     })

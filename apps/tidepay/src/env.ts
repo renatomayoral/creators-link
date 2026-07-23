@@ -13,9 +13,9 @@ function optional(name: string): string | undefined {
 }
 
 export const env = {
-  // Database (splitfy has its own DB, separate from apps/web for extraction).
+  // Database (tidepay has its own DB, separate from apps/web for extraction).
   get databaseUrl() {
-    return required('SPLITFY_DATABASE_URL')
+    return required('TIDEPAY_DATABASE_URL')
   },
 
   // On-chain operator: hot signer that pulls funds and executes the split.
@@ -45,16 +45,16 @@ export const env = {
     return required('CRON_SECRET')
   },
 
-  // Public base URL of this splitfy deployment (used to build subscribe links).
+  // Public base URL of this tidepay deployment (used to build subscribe links).
   get appUrl() {
-    return process.env['SPLITFY_APP_URL'] || 'http://localhost:3001'
+    return process.env['TIDEPAY_APP_URL'] || 'http://localhost:3001'
   },
 
   // Better Auth (merchant dashboard — scaffold only in M1).
   get betterAuthSecret() {
-    return optional('SPLITFY_BETTER_AUTH_SECRET') ?? optional('BETTER_AUTH_SECRET') ?? ''
+    return optional('TIDEPAY_BETTER_AUTH_SECRET') ?? optional('BETTER_AUTH_SECRET') ?? ''
   },
   get betterAuthUrl() {
-    return process.env['SPLITFY_BETTER_AUTH_URL'] || this.appUrl
+    return process.env['TIDEPAY_BETTER_AUTH_URL'] || this.appUrl
   },
 }

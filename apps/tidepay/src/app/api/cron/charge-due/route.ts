@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
           if (result.outcome === 'settled') settled++
           if (result.outcome === 'failed') failed++
         } catch (err) {
-          console.error('[splitfy cron] charge cycle threw:', err)
+          console.error('[tidepay cron] charge cycle threw:', err)
           failed++
         }
       }
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     where: and(eq(charge.status, 'pulled'), isNotNull(charge.failureReason)),
   })
   if (stuckCharges.length > 0) {
-    console.error(`[splitfy cron] ${stuckCharges.length} charge(s) stuck after pull, needing manual reconciliation`)
+    console.error(`[tidepay cron] ${stuckCharges.length} charge(s) stuck after pull, needing manual reconciliation`)
   }
 
   // Gas monitoring: check the operator's native balance on every chain that
@@ -94,10 +94,10 @@ export async function GET(req: NextRequest) {
       const balance = await readOperatorNativeBalance(chainId)
       if (balance < MIN_OPERATOR_GAS_WEI) {
         lowGasChains.push(chainId)
-        console.error(`[splitfy cron] operator gas low on chain ${chainId}: ${balance.toString()} wei`)
+        console.error(`[tidepay cron] operator gas low on chain ${chainId}: ${balance.toString()} wei`)
       }
     } catch (err) {
-      console.error(`[splitfy cron] failed to read operator gas balance on chain ${chainId}:`, err)
+      console.error(`[tidepay cron] failed to read operator gas balance on chain ${chainId}:`, err)
     }
   }
 

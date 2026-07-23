@@ -132,7 +132,7 @@ export function SettingsClient({
             <input
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder="https://your-app.com/api/webhooks/splitfy"
+              placeholder="https://your-app.com/api/webhooks/tidepay"
               className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-white placeholder:text-neutral-600"
             />
           </div>

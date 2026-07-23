@@ -7,8 +7,8 @@ function newId(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, '')}`
 }
 
-const connectionString = process.env['SPLITFY_DATABASE_URL']
-if (!connectionString) throw new Error('SPLITFY_DATABASE_URL environment variable is not set')
+const connectionString = process.env['TIDEPAY_DATABASE_URL']
+if (!connectionString) throw new Error('TIDEPAY_DATABASE_URL environment variable is not set')
 const client = postgres(connectionString, { prepare: false, max: 1 })
 const db = drizzle(client, { schema })
 
